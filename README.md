@@ -33,7 +33,8 @@ and upload instantly, with no manual resizing or re-saving.
 Grab the latest `ClipShrink.exe` from the [**Releases**](../../releases) page and run it.
 
 - It runs in the tray. Right-click the icon for: pause/resume, recent history,
-  open output folder, enable auto-start, and quit.
+  switch the upload limit (10/50/500 MB), change language, open output folder,
+  enable auto-start, and quit.
 - **Auto-start is opt-in** — it's *off by default*. Turn on *"Run at Windows startup"*
   from the tray menu if you want it.
 - Only one instance runs at a time.
@@ -65,7 +66,7 @@ Edit the values at the top of `clipshrink.py`:
 
 | Setting | Default | Description |
 |---|---|---|
-| `LIMIT_MB` | 10 | Upload limit in MB (set to 50/500 if you have Nitro) |
+| `LIMIT_MB` | 10 | Default upload limit in MB — or pick 10/50/500 from the tray **Upload limit** menu |
 | `SAFETY` | 0.95 | Safety margin (targets ~9.5 MB) |
 | `WEBP_QUALITIES` | 90–50 | WebP quality steps |
 | `MIN_SCALE` | 0.4 | Lower bound for downscaling |
@@ -75,6 +76,8 @@ Edit the values at the top of `clipshrink.py`:
 - Compressed files are written to `%TEMP%\ClipShrink` and auto-deleted after 1 day.
 - Copying an image **file** (<kbd>Ctrl</kbd>+<kbd>C</kbd>) larger than the limit is
   compressed the same way.
+- **Languages:** English, 한국어, 日本語, 中文(简体). ClipShrink auto-detects your
+  Windows language and can be switched anytime from the tray **Language** menu.
 
 ## Development
 

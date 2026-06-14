@@ -55,3 +55,24 @@ def test_limit_bytes_has_safety_margin():
     raw = clipshrink.LIMIT_MB * 1024 * 1024
     assert clipshrink.LIMIT_BYTES < raw
     assert clipshrink.LIMIT_BYTES == int(raw * clipshrink.SAFETY)
+
+
+def test_to_rgb_on_white_flattens_transparency():
+    # Fully transparent pixels must become white, never black (JPEG has no alpha).
+    im = Image.new("RGBA", (4, 4), (255, 0, 0, 0))
+    rgb = clipshrink._to_rgb_on_white(im)
+    assert rgb.mode == "RGB"
+    assert rgb.getpixel((0, 0)) == (255, 255, 255)
+
+
+def test_to_rgb_on_white_passes_through_rgb():
+    im = Image.new("RGB", (4, 4), (12, 34, 56))
+    assert clipshrink._to_rgb_on_white(im).getpixel((0, 0)) == (12, 34, 56)
+
+
+def test_compute_limit_bytes_scales_and_applies_margin():
+    for mb in (10, 50, 500):
+        assert clipshrink.compute_limit_bytes(mb) == int(
+            mb * 1024 * 1024 * clipshrink.SAFETY
+        )
+    assert clipshrink.compute_limit_bytes(50) > clipshrink.compute_limit_bytes(10)

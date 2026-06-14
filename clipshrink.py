@@ -28,7 +28,7 @@ from datetime import datetime
 
 from PIL import Image, ImageGrab
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 # ===================== 설정 =====================
 LIMIT_MB = 10           # 디스코드 무료 업로드 한도 (MB)
@@ -39,7 +39,13 @@ MIN_SCALE = 0.4         # 해상도 축소 하한 (원본의 40%까지만)
 POLL_INTERVAL = 0.4     # 클립보드 확인 주기 (초)
 # ================================================
 
-LIMIT_BYTES = int(LIMIT_MB * 1024 * 1024 * SAFETY)
+
+def compute_limit_bytes(mb: int) -> int:
+    """업로드 한도(MB)에 안전 마진을 적용한 바이트 한도."""
+    return int(mb * 1024 * 1024 * SAFETY)
+
+
+LIMIT_BYTES = compute_limit_bytes(LIMIT_MB)
 TEMP_DIR = os.path.join(tempfile.gettempdir(), "ClipShrink")
 os.makedirs(TEMP_DIR, exist_ok=True)
 
@@ -109,26 +115,171 @@ def set_startup(enable: bool):
 SETTINGS_KEY = r"Software\ClipShrink"
 
 
-def get_setting_flag(name: str) -> bool:
-    r"""HKCU\Software\ClipShrink 아래의 DWORD 플래그를 읽는다 (없으면 False)."""
+def get_setting_int(name: str, default: int = 0) -> int:
+    r"""HKCU\Software\ClipShrink 아래의 DWORD 값을 읽는다 (없으면 default)."""
     import winreg
 
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, SETTINGS_KEY) as key:
             value, _ = winreg.QueryValueEx(key, name)
-            return bool(value)
-    except OSError:
-        return False
+            return int(value)
+    except (OSError, ValueError, TypeError):
+        return default
 
 
-def set_setting_flag(name: str, value: bool = True):
+def set_setting_int(name: str, value: int):
     import winreg
 
     try:
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, SETTINGS_KEY) as key:
-            winreg.SetValueEx(key, name, 0, winreg.REG_DWORD, 1 if value else 0)
+            winreg.SetValueEx(key, name, 0, winreg.REG_DWORD, int(value))
     except OSError:
         pass
+
+
+def get_setting_flag(name: str) -> bool:
+    return bool(get_setting_int(name, 0))
+
+
+def set_setting_flag(name: str, value: bool = True):
+    set_setting_int(name, 1 if value else 0)
+
+
+def get_setting_str(name: str, default: str = "") -> str:
+    r"""HKCU\Software\ClipShrink 아래의 문자열 값을 읽는다 (없으면 default)."""
+    import winreg
+
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, SETTINGS_KEY) as key:
+            value, _ = winreg.QueryValueEx(key, name)
+            return str(value)
+    except OSError:
+        return default
+
+
+def set_setting_str(name: str, value: str):
+    import winreg
+
+    try:
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, SETTINGS_KEY) as key:
+            winreg.SetValueEx(key, name, 0, winreg.REG_SZ, value)
+    except OSError:
+        pass
+
+
+# ---------- 다국어 (i18n) ----------
+SUPPORTED_LANGS = ("en", "ko", "ja", "zh")
+
+# GetUserDefaultUILanguage()의 primary language id → 언어 코드
+_PRIMARY_LANG_MAP = {0x09: "en", 0x12: "ko", 0x11: "ja", 0x04: "zh"}
+
+STRINGS = {
+    "en": {
+        "tooltip": "ClipShrink v{ver} — auto-compress images for Discord's upload limit",
+        "pause": "Pause watching",
+        "resume": "Resume watching",
+        "history": "Recent activity",
+        "history_empty": "(none yet)",
+        "upload_limit": "Upload limit",
+        "open_folder": "Open output folder",
+        "run_at_startup": "Run at Windows startup",
+        "language": "Language",
+        "lang_auto": "Auto-detect",
+        "quit": "Quit",
+        "notify_compress_done": "Compressed: {orig:.1f} MB → {new:.1f} MB (-{pct}%, {fmt}) — just paste it.",
+        "notify_compress_fail": "Compression failed: couldn't get under the limit.",
+        "notify_clipboard_fail": "Clipboard update failed: another app is using the clipboard. Please copy again in a moment.",
+        "notify_file_deleted": "That file has already been deleted.",
+        "notify_startup_fail": "Failed to change the startup setting.",
+        "notify_first_run": "Running in the tray. To launch at startup, enable it from the menu → 'Run at Windows startup'.",
+    },
+    "ko": {
+        "tooltip": "ClipShrink v{ver} — 디스코드 업로드 한도 자동 압축",
+        "pause": "감시 중지",
+        "resume": "감시 시작",
+        "history": "최근 처리 내역",
+        "history_empty": "(아직 없음)",
+        "upload_limit": "업로드 한도",
+        "open_folder": "처리된 이미지 폴더 열기",
+        "run_at_startup": "Windows 시작 시 자동 실행",
+        "language": "언어",
+        "lang_auto": "자동 감지",
+        "quit": "종료",
+        "notify_compress_done": "압축 완료: {orig:.1f}MB → {new:.1f}MB ({pct}% 감소, {fmt}) — 그대로 붙여넣으세요.",
+        "notify_compress_fail": "압축 실패: 한도 이하로 줄이지 못했습니다.",
+        "notify_clipboard_fail": "클립보드 교체 실패: 다른 프로그램이 클립보드를 사용 중입니다. 잠시 후 다시 복사해 주세요.",
+        "notify_file_deleted": "파일이 이미 삭제되었습니다.",
+        "notify_startup_fail": "시작 프로그램 설정 변경에 실패했습니다.",
+        "notify_first_run": "트레이에서 실행 중입니다. 부팅 시 자동 실행하려면 메뉴 → 'Windows 시작 시 자동 실행'을 켜세요.",
+    },
+    "ja": {
+        "tooltip": "ClipShrink v{ver} — Discordのアップロード上限に自動圧縮",
+        "pause": "監視を停止",
+        "resume": "監視を再開",
+        "history": "最近の処理履歴",
+        "history_empty": "(まだありません)",
+        "upload_limit": "アップロード上限",
+        "open_folder": "出力フォルダーを開く",
+        "run_at_startup": "Windows起動時に実行",
+        "language": "言語",
+        "lang_auto": "自動検出",
+        "quit": "終了",
+        "notify_compress_done": "圧縮完了: {orig:.1f}MB → {new:.1f}MB（{pct}%削減、{fmt}）— そのまま貼り付けてください。",
+        "notify_compress_fail": "圧縮失敗: 上限以下に縮小できませんでした。",
+        "notify_clipboard_fail": "クリップボードの更新に失敗: 他のアプリが使用中です。少し待ってからもう一度コピーしてください。",
+        "notify_file_deleted": "ファイルはすでに削除されています。",
+        "notify_startup_fail": "スタートアップ設定の変更に失敗しました。",
+        "notify_first_run": "トレイで実行中です。起動時に自動実行するには、メニュー →「Windows起動時に実行」をオンにしてください。",
+    },
+    "zh": {
+        "tooltip": "ClipShrink v{ver} — 自动压缩图片以符合 Discord 上传限制",
+        "pause": "暂停监视",
+        "resume": "恢复监视",
+        "history": "最近处理记录",
+        "history_empty": "(暂无)",
+        "upload_limit": "上传限制",
+        "open_folder": "打开输出文件夹",
+        "run_at_startup": "开机时自动运行",
+        "language": "语言",
+        "lang_auto": "自动检测",
+        "quit": "退出",
+        "notify_compress_done": "压缩完成: {orig:.1f}MB → {new:.1f}MB（减少 {pct}%，{fmt}）— 直接粘贴即可。",
+        "notify_compress_fail": "压缩失败: 无法缩小到限制以下。",
+        "notify_clipboard_fail": "剪贴板更新失败: 其他程序正在占用剪贴板。请稍后重新复制。",
+        "notify_file_deleted": "该文件已被删除。",
+        "notify_startup_fail": "更改开机启动设置失败。",
+        "notify_first_run": "正在托盘运行。如需开机自动启动，请在菜单 →「开机时自动运行」中开启。",
+    },
+}
+
+current_lang = "en"  # 실행 시 set_language()로 설정됨
+
+
+def detect_system_lang() -> str:
+    """Windows UI 언어를 감지해 지원 언어 코드로 매핑 (실패 시 'en')."""
+    try:
+        langid = kernel32.GetUserDefaultUILanguage()
+        return _PRIMARY_LANG_MAP.get(langid & 0x3FF, "en")
+    except Exception:
+        return "en"
+
+
+def set_language(pref: str):
+    """pref가 'auto'면 시스템 언어를 감지, 아니면 해당 언어로 설정."""
+    global current_lang
+    if pref == "auto":
+        current_lang = detect_system_lang()
+    elif pref in STRINGS:
+        current_lang = pref
+    else:
+        current_lang = "en"
+
+
+def tr(key: str, **kwargs) -> str:
+    """현재 언어의 문자열을 반환 (없으면 영어, 그래도 없으면 key)."""
+    table = STRINGS.get(current_lang, STRINGS["en"])
+    text = table.get(key) or STRINGS["en"].get(key, key)
+    return text.format(**kwargs) if kwargs else text
 
 
 def ensure_single_instance():
@@ -238,6 +389,18 @@ def estimate_png_size(img: Image.Image) -> int:
     return buf.tell()
 
 
+def _to_rgb_on_white(im: Image.Image) -> Image.Image:
+    """JPEG는 알파를 지원하지 않으므로 RGBA는 흰 배경에 합성해 RGB로 변환한다.
+    (단순 convert('RGB')는 투명 영역을 검게 만든다.)"""
+    if im.mode == "RGBA":
+        bg = Image.new("RGB", im.size, (255, 255, 255))
+        bg.paste(im, mask=im.split()[3])
+        return bg
+    if im.mode != "RGB":
+        return im.convert("RGB")
+    return im
+
+
 def compress_image(img: Image.Image, limit: int):
     """
     한도 이하가 될 때까지 압축. (포맷 변환 → 품질 하향 → 해상도 축소 순)
@@ -251,7 +414,7 @@ def compress_image(img: Image.Image, limit: int):
         if fmt == "WEBP":
             im.save(buf, format="WEBP", quality=quality, method=4)
         else:
-            rgb = im.convert("RGB") if im.mode == "RGBA" else im
+            rgb = _to_rgb_on_white(im)
             rgb.save(buf, format="JPEG", quality=quality, optimize=True)
         return buf.getvalue()
 
@@ -357,12 +520,12 @@ class Monitor:
     def _compress_and_replace(self, img: Image.Image, orig_bytes: int):
         result = compress_image(img, LIMIT_BYTES)
         if result is None:
-            self.notify(APP_NAME, "압축 실패: 한도 이하로 줄이지 못했습니다.")
+            self.notify(APP_NAME, tr("notify_compress_fail"))
             return
 
         data, ext = result
         out_path = os.path.join(
-            TEMP_DIR, datetime.now().strftime("capture_%Y%m%d_%H%M%S") + ext
+            TEMP_DIR, datetime.now().strftime("capture_%Y%m%d_%H%M%S_%f") + ext
         )
         with open(out_path, "wb") as f:
             f.write(data)
@@ -388,12 +551,24 @@ class Monitor:
                     pass
             self.notify(
                 APP_NAME,
-                f"압축 완료: {orig_mb:.1f}MB → {new_mb:.1f}MB ({pct}% 감소, {ext[1:].upper()}) — 그대로 붙여넣으세요.",
+                tr(
+                    "notify_compress_done",
+                    orig=orig_mb,
+                    new=new_mb,
+                    pct=pct,
+                    fmt=ext[1:].upper(),
+                ),
             )
+        else:
+            self.notify(APP_NAME, tr("notify_clipboard_fail"))
 
     def run(self):
+        last_cleanup = time.time()
         while not self.stop_flag:
             time.sleep(POLL_INTERVAL)
+            if time.time() - last_cleanup > 3600:  # 1시간마다 오래된 임시파일 정리
+                cleanup_temp()
+                last_cleanup = time.time()
             if not self.enabled:
                 continue
             seq = user32.GetClipboardSequenceNumber()
@@ -433,8 +608,17 @@ def make_icon_image(active=True):
 def main():
     import pystray
 
+    global LIMIT_MB, LIMIT_BYTES
+
     ensure_single_instance()
     cleanup_temp()
+
+    # 저장된 업로드 한도 불러오기 (없으면 기본값 유지)
+    LIMIT_MB = get_setting_int("limit_mb", LIMIT_MB)
+    LIMIT_BYTES = compute_limit_bytes(LIMIT_MB)
+
+    # 언어: 저장된 설정(없으면 'auto' → 시스템 언어 감지)
+    set_language(get_setting_str("lang", "auto"))
 
     # 자동 시작은 opt-in: 첫 실행이면 안내만 하고, 등록은 사용자가 트레이 메뉴에서 직접 켠다.
     first_run = not get_setting_flag("welcomed")
@@ -453,7 +637,7 @@ def main():
         try:
             set_startup(not is_startup_registered())
         except Exception:
-            icon.notify("시작 프로그램 설정 변경에 실패했습니다.", APP_NAME)
+            icon.notify(tr("notify_startup_fail"), APP_NAME)
 
     def on_quit(icon, item):
         monitor.stop_flag = True
@@ -467,7 +651,7 @@ def main():
             if os.path.exists(path):
                 os.startfile(path)
             else:
-                icon.notify("파일이 이미 삭제되었습니다.", APP_NAME)
+                icon.notify(tr("notify_file_deleted"), APP_NAME)
         return _open
 
     def history_items():
@@ -475,29 +659,78 @@ def main():
         with monitor.history_lock:
             snapshot = list(monitor.history)
         if not snapshot:
-            yield pystray.MenuItem("(아직 없음)", None, enabled=False)
+            yield pystray.MenuItem(tr("history_empty"), None, enabled=False)
             return
         for e in reversed(snapshot):
             label = f"{e['time']}  {e['orig_mb']:.1f}MB → {e['new_mb']:.1f}MB (-{e['pct']}%)"
             yield pystray.MenuItem(label, make_open(e["path"]))
 
+    def make_limit_item(mb):
+        def on_select(icon, item):
+            global LIMIT_MB, LIMIT_BYTES
+            LIMIT_MB = mb
+            LIMIT_BYTES = compute_limit_bytes(mb)
+            set_setting_int("limit_mb", mb)
+            icon.update_menu()
+
+        return pystray.MenuItem(
+            f"{mb} MB",
+            on_select,
+            checked=lambda item, mb=mb: LIMIT_MB == mb,
+            radio=True,
+        )
+
+    # 디스코드 한도: 무료 10 / 니트로 베이직 50 / 니트로 500 MB
+    limit_menu = pystray.Menu(
+        make_limit_item(10),
+        make_limit_item(50),
+        make_limit_item(500),
+    )
+
+    # 언어 메뉴 (자동 감지 + 각 언어). 언어명은 해당 언어 표기 그대로 둔다.
+    lang_names = {"en": "English", "ko": "한국어", "ja": "日本語", "zh": "中文(简体)"}
+
+    def make_lang_item(code):
+        def on_select(icon, item):
+            set_setting_str("lang", code)
+            set_language(code)
+            icon.update_menu()
+
+        label = (lambda item: tr("lang_auto")) if code == "auto" else lang_names[code]
+        return pystray.MenuItem(
+            label,
+            on_select,
+            checked=lambda item, code=code: get_setting_str("lang", "auto") == code,
+            radio=True,
+        )
+
+    lang_menu = pystray.Menu(
+        make_lang_item("auto"),
+        make_lang_item("en"),
+        make_lang_item("ko"),
+        make_lang_item("ja"),
+        make_lang_item("zh"),
+    )
+
     icon = pystray.Icon(
         APP_NAME,
         make_icon_image(True),
-        f"ClipShrink v{__version__} — 디스코드 10MB 자동 압축",
+        tr("tooltip", ver=__version__),
         menu=pystray.Menu(
             pystray.MenuItem(
-                lambda item: "감시 중지" if monitor.enabled else "감시 시작",
+                lambda item: tr("pause") if monitor.enabled else tr("resume"),
                 on_toggle,
             ),
-            pystray.MenuItem("최근 처리 내역", pystray.Menu(history_items)),
-            pystray.MenuItem("처리된 이미지 폴더 열기", on_open_folder),
+            pystray.MenuItem(lambda item: tr("history"), pystray.Menu(history_items)),
+            pystray.MenuItem(lambda item: tr("upload_limit"), limit_menu),
+            pystray.MenuItem(lambda item: tr("open_folder"), on_open_folder),
+            pystray.MenuItem(lambda item: tr("language"), lang_menu),
             pystray.MenuItem(
-                "Windows 시작 시 자동 실행",
+                lambda item: tr("run_at_startup"),
                 on_toggle_startup,
                 checked=lambda item: is_startup_registered(),
             ),
-            pystray.MenuItem("종료", on_quit),
+            pystray.MenuItem(lambda item: tr("quit"), on_quit),
         ),
     )
     monitor.on_history_change = icon.update_menu
@@ -505,11 +738,7 @@ def main():
     if first_run:
         threading.Timer(
             1.5,
-            lambda: icon.notify(
-                "트레이에서 실행 중입니다. 부팅 시 자동 실행하려면 "
-                "메뉴 → 'Windows 시작 시 자동 실행'을 켜세요.",
-                APP_NAME,
-            ),
+            lambda: icon.notify(tr("notify_first_run"), APP_NAME),
         ).start()
     icon.run()
 
