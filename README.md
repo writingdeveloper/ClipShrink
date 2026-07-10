@@ -12,11 +12,12 @@
 
 <p align="center"><b>English</b> | <a href="README.ko.md">한국어</a></p>
 
-A tiny Windows tray app that **auto-compresses clipboard images** that exceed
-Discord's free upload limit (10 MB) — so you can just paste with <kbd>Ctrl</kbd>+<kbd>V</kbd>
-and upload instantly, with no manual resizing or re-saving.
+A tiny Windows tray app for Discord free users. It **auto-compresses clipboard
+images** that exceed Discord's free upload limit (10 MB), and ships an
+**emoji / sticker / GIF picker** (hotkey popup) that fills the Nitro gap
+**without modifying the Discord client**. Just paste with <kbd>Ctrl</kbd>+<kbd>V</kbd>.
 
-## How it works
+## How it works (auto-compression)
 
 1. Lives in the system tray and watches the clipboard.
 2. When a new image is copied, it computes the **PNG size Discord would produce** on paste.
@@ -27,6 +28,34 @@ and upload instantly, with no manual resizing or re-saving.
    in Discord uploads it as a file attachment. A tray notification confirms the result.
 
 > Your original capture files on disk are never touched — only the clipboard is replaced.
+
+## The picker (v2.0)
+
+Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> (configurable from the tray)
+while typing in Discord — a Discord-styled dark popup opens near your cursor
+with three tabs: **Emoji / Stickers / GIFs**.
+
+- **Add items:** press **＋** and paste a Discord *"Copy Link"* emoji URL, or
+  drag & drop image files onto the picker, or add **watched folders** (⚙) whose
+  PNG/GIF/WebP/APNG files appear automatically in the current tab.
+- **Use items:** click one — the picker hides, focus returns to Discord, and the
+  image is pasted into the message box as an attachment. **You press Enter to
+  send.** Right-click for "paste as link" (CDN items) or remove.
+- Animated APNG stickers are converted to GIF on registration, because Discord
+  doesn't animate uploaded APNGs.
+- Search by name/keywords; a "Recently used" row keeps favorites close.
+- Items over the upload limit: static images are auto-compressed; oversized
+  GIFs are sent as-is with a warning.
+
+**ToS safety, by design:** ClipShrink never patches the Discord client and never
+touches your account or token (no self-bot behavior). It only prepares your
+clipboard and simulates a local <kbd>Ctrl</kbd>+<kbd>V</kbd> — the same kind of
+input automation as the Windows emoji panel (<kbd>Win</kbd>+<kbd>.</kbd>).
+The honest trade-off: recipients see your emojis/stickers as image attachments
+or link embeds, not as native inline emojis.
+
+Requires the **WebView2 runtime** (built into Windows 11). Without it, the
+picker is disabled and compression keeps working.
 
 ## Download & run (recommended)
 
@@ -62,7 +91,8 @@ Output: `dist\ClipShrink.exe`. Requires Python 3.10+ (the script installs PyInst
 
 ## Configuration
 
-Edit the values at the top of `clipshrink.py`:
+Edit the values in `clipshrink_app/config.py` (limits) and
+`clipshrink_app/compress.py` (quality steps):
 
 | Setting | Default | Description |
 |---|---|---|

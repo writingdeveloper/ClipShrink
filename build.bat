@@ -2,11 +2,13 @@
 chcp 65001 >nul
 cd /d "%~dp0"
 echo [1/3] 의존성 설치...
-pip install --upgrade pyinstaller pillow pystray || goto :error
+pip install --upgrade pyinstaller -r requirements.txt || goto :error
 echo [2/3] EXE 빌드...
-pyinstaller --onefile --noconsole --name ClipShrink --clean clipshrink.py || goto :error
+pyinstaller --onefile --noconsole --name ClipShrink --clean ^
+  --add-data "clipshrink_app\picker\ui;clipshrink_app/picker/ui" ^
+  --collect-all webview clipshrink.py || goto :error
 echo [3/3] 완료! 결과물: dist\ClipShrink.exe
-echo 실행하면 트레이에 상주하며 시작 프로그램에 자동 등록됩니다.
+echo 실행하면 트레이에 상주합니다. 피커 단축키: Ctrl+Shift+E
 pause
 exit /b 0
 :error

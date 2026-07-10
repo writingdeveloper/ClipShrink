@@ -26,7 +26,7 @@ jobs:
         run: pip install --upgrade pyinstaller -r requirements.txt
 
       - name: Build EXE
-        run: pyinstaller --onefile --noconsole --name ClipShrink --clean clipshrink.py
+        run: pyinstaller --onefile --noconsole --name ClipShrink --clean --add-data "clipshrink_app\picker\ui;clipshrink_app/picker/ui" --collect-all webview clipshrink.py
 
       - name: Publish release with EXE
         uses: softprops/action-gh-release@v2
