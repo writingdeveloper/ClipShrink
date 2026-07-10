@@ -61,9 +61,9 @@ picker is disabled and compression keeps working.
 
 Grab the latest `ClipShrink.exe` from the [**Releases**](../../releases) page and run it.
 
-- It runs in the tray. Right-click the icon for: pause/resume, recent history,
-  switch the upload limit (10/50/500 MB), change language, open output folder,
-  enable auto-start, and quit.
+- It runs in the tray. Right-click the icon for: open the picker, change the
+  picker hotkey, pause/resume, recent history, switch the upload limit
+  (10/50/500 MB), change language, open output folder, enable auto-start, and quit.
 - **Auto-start is opt-in** — it's *off by default*. Turn on *"Run at Windows startup"*
   from the tray menu if you want it.
 - Only one instance runs at a time.
