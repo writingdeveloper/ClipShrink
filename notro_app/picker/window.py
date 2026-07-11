@@ -150,6 +150,8 @@ class PickerApi:
             "can_url": bool(item.get("source_url")),
             "is_folder": item["source_kind"] == "folder",
             "convert_warning": bool(item.get("convert_warning", False)),
+            "favorite": bool(item.get("favorite", False)),
+            "collection": item.get("collection", ""),
         }
 
     def get_state(self) -> dict:
@@ -159,6 +161,7 @@ class PickerApi:
             "recent": [i["id"] for i in self._library.recent()],
             "folders": [{**f, "exists": os.path.isdir(f["path"])}
                         for f in self._library.folders()],
+            "collections": self._library.collections(),
             "strings": {k: tr(k) for k in PICKER_STRING_KEYS},
         }
 
@@ -223,6 +226,21 @@ class PickerApi:
 
     def remove_item(self, item_id: str) -> bool:
         self._library.remove_item(item_id)
+        return True
+
+    def toggle_favorite(self, item_id: str) -> dict:
+        return {"ok": True, "favorite": self._library.toggle_favorite(item_id)}
+
+    def set_collection(self, item_id: str, name: str = "") -> bool:
+        self._library.set_collection(item_id, name)
+        return True
+
+    def open_data_dir(self) -> bool:
+        from .. import config
+        try:
+            os.startfile(config.DATA_DIR)
+        except OSError:
+            pass
         return True
 
     def hide(self):
