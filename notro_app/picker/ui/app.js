@@ -25,7 +25,7 @@ function mock() {
   ];
   state.recent = ["1"];
   state.folders = [{ path: "C:\\mock\\gifs", default_type: "gif", exists: true }];
-  state.collections = ["miku", "gifs"];
+  state.collections = [{ name: "miku", icon: sq("#39c5bb") }, { name: "gifs", icon: null }];
   state.strings = {};
 }
 
@@ -59,16 +59,23 @@ function inCollection(i) {
 function renderRail() {
   const rail = $("#rail");
   rail.innerHTML = "";
-  const add = (key, label, title) => {
+  const add = (key, label, title, icon) => {
     const b = document.createElement("button");
-    b.textContent = label; b.title = title;
+    if (icon) {
+      const img = document.createElement("img");
+      img.src = icon;
+      b.appendChild(img);
+    } else {
+      b.textContent = label;
+    }
+    b.title = title;
     if (state.collection === key) b.classList.add("active");
     b.addEventListener("click", () => { state.collection = key; renderRail(); render(); });
     rail.appendChild(b);
   };
-  add("__fav__", "★", str("picker_col_favorites"));
-  add("__all__", "▦", str("picker_col_all"));
-  for (const col of state.collections) add(col, col.slice(0, 2), col);
+  add("__fav__", "★", str("picker_col_favorites"), null);
+  add("__all__", "▦", str("picker_col_all"), null);
+  for (const col of state.collections) add(col.name, col.name.slice(0, 2), col.name, col.icon);
 }
 
 // 타이핑 반응성을 위한 클라이언트 미러. 정식 검색 책임은 library.search() (스펙 §3).
