@@ -125,6 +125,7 @@ PICKER_STRING_KEYS = [
     "picker_folders_title", "picker_add_folder", "picker_drop_hint",
     "picker_ctx_file", "picker_ctx_url", "picker_ctx_delete",
     "picker_err_lottie", "picker_err_not_discord", "picker_err_download",
+    "picker_convert_warn", "picker_paste_no_image",
 ]
 
 
@@ -148,6 +149,7 @@ class PickerApi:
             "url": self._asset_server.url_for(item["id"]),
             "can_url": bool(item.get("source_url")),
             "is_folder": item["source_kind"] == "folder",
+            "convert_warning": bool(item.get("convert_warning", False)),
         }
 
     def get_state(self) -> dict:
@@ -189,6 +191,23 @@ class PickerApi:
             except Exception:
                 pass
         return {"ok": True, "count": n}
+
+    def register_clipboard(self, type_: str) -> dict:
+        """클립보드의 PNG 이미지를 라이브러리에 등록 (스펙 §5 — 디스코드/브라우저
+        에서 이미지를 복사한 뒤 붙여넣는 주 경로). 재인코딩 추정이 아닌 클립보드
+        원본 PNG 바이트를 그대로 캐시한다. 이미지가 없으면 ok=False."""
+        from datetime import datetime
+
+        from .. import fetch
+        data = cb.get_clipboard_png()
+        if not data:
+            return {"ok": False, "error": "no_image"}
+        name = datetime.now().strftime("clip-%Y%m%d-%H%M%S")
+        try:
+            fetch.register_from_png_bytes(self._library, data, type_, name=name)
+        except Exception:
+            return {"ok": False, "error": "register"}
+        return {"ok": True}
 
     def add_folder(self, default_type: str = "gif") -> dict:
         import webview

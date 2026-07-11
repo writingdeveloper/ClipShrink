@@ -55,7 +55,11 @@ class Library:
                     pass
 
     def _apply_lib(self, data: dict) -> None:
-        self._items = {i["id"]: i for i in data.get("items", [])}
+        items = {}
+        for i in data.get("items", []):
+            i.setdefault("convert_warning", False)  # 구버전 항목 하위호환
+            items[i["id"]] = i
+        self._items = items
 
     def _apply_folders(self, data: dict) -> None:
         self._folders = list(data.get("folders", []))
@@ -79,13 +83,13 @@ class Library:
         return uuid.uuid4().hex[:12] + ext
 
     def add_item(self, type_, name, keywords, source_kind, source_url,
-                 filename, animated) -> dict:
+                 filename, animated, convert_warning=False) -> dict:
         item = {
             "id": uuid.uuid4().hex[:12], "type": type_, "name": name,
             "keywords": list(keywords or []), "source_kind": source_kind,
             "source_url": source_url, "filename": filename,
-            "animated": bool(animated), "added_at": _now(),
-            "use_count": 0, "last_used": 0,
+            "animated": bool(animated), "convert_warning": bool(convert_warning),
+            "added_at": _now(), "use_count": 0, "last_used": 0,
         }
         self._items[item["id"]] = item
         self._save()
@@ -179,3 +183,18 @@ class Library:
 
     def all_display_items(self) -> list[dict]:
         return self.items() + self.scan_folders()
+
+    # ---------- 검색 ----------
+    # 정식 검색 책임(스펙 §3)은 여기 있다. 프런트엔드 app.js filtered()는
+    # 타이핑 반응성을 위한 동일 규칙의 미러일 뿐이다.
+    def search(self, query: str, type_: str | None = None) -> list[dict]:
+        """이름·키워드 대소문자 무시 부분일치. 빈 쿼리면 type_ 필터만 적용."""
+        items = self.all_display_items()
+        if type_ is not None:
+            items = [i for i in items if i["type"] == type_]
+        q = (query or "").strip().lower()
+        if not q:
+            return items
+        return [i for i in items
+                if q in i["name"].lower()
+                or any(q in k.lower() for k in i["keywords"])]

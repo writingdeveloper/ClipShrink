@@ -131,3 +131,46 @@ def test_remove_folder_stops_scanning(tmp_path):
     lib.remove_folder(str(folder))
     assert lib.scan_folders() == []
     assert lib.folders() == []
+
+
+# ---------- search (스펙 §3: 검색 책임은 library.py) ----------
+def test_search_matches_name(tmp_path):
+    lib = make_lib(tmp_path)
+    lib.add_item("emoji", "smile", [], "local", "", put_asset(lib, "a.png"), False)
+    lib.add_item("emoji", "frown", [], "local", "", put_asset(lib, "b.png"), False)
+    assert [i["name"] for i in lib.search("smi")] == ["smile"]
+
+
+def test_search_matches_keyword(tmp_path):
+    lib = make_lib(tmp_path)
+    lib.add_item("emoji", "a", ["happy", "joy"], "local", "",
+                 put_asset(lib, "a.png"), False)
+    lib.add_item("emoji", "b", ["sad"], "local", "", put_asset(lib, "b.png"), False)
+    assert [i["name"] for i in lib.search("joy")] == ["a"]
+
+
+def test_search_is_case_insensitive(tmp_path):
+    lib = make_lib(tmp_path)
+    lib.add_item("emoji", "Smile", ["Happy"], "local", "",
+                 put_asset(lib, "a.png"), False)
+    assert [i["name"] for i in lib.search("smile")] == ["Smile"]
+    assert [i["name"] for i in lib.search("HAP")] == ["Smile"]
+
+
+def test_search_empty_query_returns_all(tmp_path):
+    lib = make_lib(tmp_path)
+    lib.add_item("emoji", "a", [], "local", "", put_asset(lib, "a.png"), False)
+    folder = tmp_path / "f"
+    folder.mkdir()
+    Image.new("RGB", (4, 4)).save(folder / "z.gif")
+    lib.add_folder(str(folder), "gif")
+    assert len(lib.search("")) == 2  # all_display_items() 전체
+    assert len(lib.search("   ")) == 2  # 공백만인 쿼리도 빈 쿼리로 취급
+
+
+def test_search_type_filter(tmp_path):
+    lib = make_lib(tmp_path)
+    lib.add_item("emoji", "e", ["x"], "local", "", put_asset(lib, "a.png"), False)
+    lib.add_item("gif", "g", ["x"], "local", "", put_asset(lib, "b.png"), False)
+    assert [i["name"] for i in lib.search("", "emoji")] == ["e"]  # 빈 쿼리 + 타입
+    assert [i["name"] for i in lib.search("x", "gif")] == ["g"]  # 쿼리 + 타입 동시

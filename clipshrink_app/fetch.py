@@ -96,17 +96,37 @@ def apng_to_gif(src: str, dest: str) -> None:
                    duration=durations, loop=0, disposal=2, transparency=255)
 
 
-def _finalize_asset(library, tmp_path: str, ext: str) -> tuple[str, bool]:
-    """APNG면 GIF로 변환해 저장, 아니면 그대로. (최종 파일명, animated) 반환."""
+def _first_frame_png(src: str, dest: str) -> None:
+    """APNG 첫 프레임을 정지 PNG로 저장 (GIF 변환 실패 시 폴백)."""
+    with Image.open(src) as im:
+        im.seek(0)
+        im.convert("RGBA").save(dest, format="PNG")
+
+
+def _finalize_asset(library, tmp_path: str, ext: str) -> tuple[str, bool, bool]:
+    """APNG면 GIF로 변환해 저장, 아니면 그대로.
+
+    (최종 파일명, animated, convert_failed) 반환. APNG→GIF 변환이 실패하면
+    정지 PNG(첫 프레임)로 폴백하고 convert_failed=True (스펙 §7 — 등록 자체는
+    성공시키고 항목에 경고 배지를 남긴다)."""
     if ext == ".png" and is_apng(tmp_path):
-        filename = library.new_asset_filename(".gif")
-        apng_to_gif(tmp_path, os.path.join(library.assets_dir, filename))
+        gif_name = library.new_asset_filename(".gif")
+        gif_path = os.path.join(library.assets_dir, gif_name)
+        try:
+            apng_to_gif(tmp_path, gif_path)
+        except Exception:
+            if os.path.exists(gif_path):  # 부분 생성된 GIF 정리
+                os.remove(gif_path)
+            png_name = library.new_asset_filename(".png")
+            _first_frame_png(tmp_path, os.path.join(library.assets_dir, png_name))
+            os.remove(tmp_path)
+            return png_name, False, True
         os.remove(tmp_path)
-        return filename, True
+        return gif_name, True, False
     filename = library.new_asset_filename(ext)
     final = os.path.join(library.assets_dir, filename)
     os.replace(tmp_path, final)
-    return filename, ext == ".gif" or sniff_animated(final)
+    return filename, ext == ".gif" or sniff_animated(final), False
 
 
 def register_from_url(library, url: str, name: str = "", keywords=None) -> dict:
@@ -117,13 +137,14 @@ def register_from_url(library, url: str, name: str = "", keywords=None) -> dict:
     tmp = os.path.join(library.assets_dir, "_dl" + library.new_asset_filename(ext))
     try:
         download(canonical_url(p), tmp)
-        filename, animated = _finalize_asset(library, tmp, ext)
+        filename, animated, convert_failed = _finalize_asset(library, tmp, ext)
     finally:
         if os.path.exists(tmp):
             os.remove(tmp)
     type_ = "emoji" if p.kind == "emoji" else "sticker"
     return library.add_item(type_, name or p.asset_id, keywords or [],
-                            "discord-cdn", canonical_url(p), filename, animated)
+                            "discord-cdn", canonical_url(p), filename, animated,
+                            convert_failed)
 
 
 def register_from_file(library, src_path: str, type_: str,
@@ -134,10 +155,29 @@ def register_from_file(library, src_path: str, type_: str,
     tmp = os.path.join(library.assets_dir, "_cp" + library.new_asset_filename(ext))
     try:
         shutil.copyfile(src_path, tmp)
-        filename, animated = _finalize_asset(library, tmp, ext)
+        filename, animated, convert_failed = _finalize_asset(library, tmp, ext)
     finally:
         if os.path.exists(tmp):
             os.remove(tmp)
     stem = os.path.splitext(os.path.basename(src_path))[0]
     return library.add_item(type_, name or stem, keywords or [],
-                            "local", "", filename, animated)
+                            "local", "", filename, animated, convert_failed)
+
+
+def register_from_png_bytes(library, data: bytes, type_: str,
+                            name: str = "", keywords=None) -> dict:
+    """클립보드 PNG 바이트를 캐시에 저장하고 라이브러리에 등록 (스펙 §5 —
+    클립보드 이미지 붙여넣기: 스티커를 수동 저장한 경우의 주 경로).
+
+    파일 등록과 동일하게 _finalize_asset을 재사용해 정지/애니메이션(APNG→GIF)을
+    판정한다. 원본 파일이 없으므로 source_kind는 파일 드롭과 같은 'local'."""
+    tmp = os.path.join(library.assets_dir, "_pb" + library.new_asset_filename(".png"))
+    try:
+        with open(tmp, "wb") as f:
+            f.write(data)
+        filename, animated, convert_failed = _finalize_asset(library, tmp, ".png")
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+    return library.add_item(type_, name, keywords or [],
+                            "local", "", filename, animated, convert_failed)

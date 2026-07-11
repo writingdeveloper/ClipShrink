@@ -56,6 +56,16 @@ header { display: flex; gap: 6px; padding: 10px 10px 6px; }
   content-visibility: auto;
 }
 .cell:hover { background: var(--hover); transform: scale(1.08); }
+/* APNG→GIF 변환 실패 폴백 항목 경고 배지 (스펙 §7) */
+.warn-badge {
+  position: absolute; top: -2px; right: -2px; z-index: 2;
+  min-width: 15px; height: 15px; padding: 0 3px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--danger); color: #fff;
+  font-size: 10px; font-weight: 700; line-height: 1;
+  border-radius: 8px; pointer-events: none;
+  box-shadow: 0 0 0 2px var(--bg);
+}
 .empty { color: var(--muted); text-align: center; padding: 24px 8px; }
 
 footer {

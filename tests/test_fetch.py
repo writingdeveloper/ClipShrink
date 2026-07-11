@@ -144,3 +144,44 @@ def test_register_from_file_apng_converts(tmp_path):
     src.write_bytes(apng_bytes())
     item = fetch.register_from_file(lib, str(src), "sticker")
     assert item["animated"] is True and item["filename"].endswith(".gif")
+    assert item["convert_warning"] is False  # 정상 변환은 경고 없음
+
+
+# ---------- APNG→GIF 변환 실패 폴백 (스펙 §7) ----------
+def _boom(*a, **k):
+    raise RuntimeError("gif encode failed")
+
+
+def test_register_from_file_apng_convert_failure_falls_back_to_png(tmp_path, monkeypatch):
+    """변환 실패 시 예외 전파 없이 정지 PNG(첫 프레임)로 저장 + 경고 플래그."""
+    lib = Library(str(tmp_path / "d"))
+    src = tmp_path / "st.png"
+    src.write_bytes(apng_bytes())
+    monkeypatch.setattr(fetch, "apng_to_gif", _boom)
+
+    item = fetch.register_from_file(lib, str(src), "sticker")  # 예외 없어야 함
+
+    assert item["convert_warning"] is True
+    assert item["animated"] is False
+    assert item["filename"].endswith(".png")
+    path = lib.asset_path(item)
+    assert os.path.exists(path)
+    with Image.open(path) as im:
+        assert im.format == "PNG"
+        assert getattr(im, "n_frames", 1) == 1  # 정지 이미지
+
+
+def test_register_from_url_apng_convert_failure_falls_back_to_png(tmp_path, monkeypatch):
+    """URL 등록 경로에서도 변환 실패 시 정지 PNG 폴백 + 경고 플래그."""
+    lib = Library(str(tmp_path / "d"))
+    monkeypatch.setattr(fetch, "download", fake_download(apng_bytes()))
+    monkeypatch.setattr(fetch, "apng_to_gif", _boom)
+
+    item = fetch.register_from_url(lib, "https://cdn.discordapp.com/stickers/9.png")
+
+    assert item["convert_warning"] is True
+    assert item["animated"] is False
+    assert item["filename"].endswith(".png")
+    with Image.open(lib.asset_path(item)) as im:
+        assert im.format == "PNG"
+        assert getattr(im, "n_frames", 1) == 1
