@@ -91,6 +91,17 @@ def test_build_apply_bat_has_pid_setup_target():
     assert "tasklist" in bat.lower()  # 앱 종료 대기
 
 
+def test_build_apply_bat_delays_before_relaunch():
+    """설치 직후 곧바로 재실행하면 미서명 exe에 대한 AV 검사/핸들 정리 타이밍
+    경합으로 'Failed to load Python DLL' 오류가 나는 것을 실측 확인했다 —
+    silent 설치 명령과 재실행(start) 사이에 지연이 있어야 한다."""
+    bat = updater.build_apply_bat(1234, r"C:\t\NotroSetup.exe", r"C:\app\Notro.exe")
+    install_pos = bat.index("/VERYSILENT")
+    start_pos = bat.index('start "" "C:\\app\\Notro.exe"')
+    between = bat[install_pos:start_pos]
+    assert "timeout" in between.lower()  # 설치와 재실행 사이에 대기가 있어야 함
+
+
 def test_apply_and_restart_writes_helper_bat_and_spawns_cmd(tmp_path):
     setup = str(tmp_path / "NotroSetup.exe")
     open(setup, "w").close()

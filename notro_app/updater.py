@@ -105,7 +105,14 @@ def build_apply_bat(pid: int, setup_path: str, target_exe: str) -> str:
 
     silent 설치는 완료 페이지가 없어 Inno `[Run] postinstall`이 실행되지 않으므로,
     재실행은 이 헬퍼가 직접 담당한다. 또한 앱 종료를 먼저 기다려 설치와 종료의
-    레이스를 없앤다."""
+    레이스를 없앤다.
+
+    설치 직후 곧바로 재실행하면 "Failed to load Python DLL ... LoadLibrary:
+    지정된 모듈을 찾을 수 없습니다" 오류가 발생할 수 있다 — 서명되지 않은 exe가
+    막 디스크에 쓰인 직후라 Windows Defender 실시간 검사·파일 핸들 정리가 아직
+    끝나지 않은 상태에서 onefile 부트로더가 압축 해제를 시도하다 실패하는
+    타이밍 경합이다(같은 exe를 몇 초 뒤 다시 실행하면 정상 동작하는 것으로 확인).
+    설치 명령과 재실행 사이에 짧은 지연을 둬 회피한다."""
     return f'''@echo off
 :wait
 tasklist /FI "PID eq {pid}" 2>NUL | find "{pid}" >NUL
@@ -114,6 +121,7 @@ if not errorlevel 1 (
   goto wait
 )
 "{setup_path}" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
+timeout /t 3 /nobreak >NUL
 start "" "{target_exe}"
 del "%~f0"
 '''

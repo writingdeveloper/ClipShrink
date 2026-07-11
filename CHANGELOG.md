@@ -3,6 +3,18 @@
 All notable changes to this project are documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.5.1] - 2026-07-11
+
+### Fixed
+- **"Failed to load Python DLL ... LoadLibrary" right after auto-update.**
+  Confirmed root cause: the updater's helper batch relaunched the freshly
+  reinstalled (unsigned) `Notro.exe` immediately after the silent install
+  finished, racing Windows Defender's real-time scan / file-handle settling
+  on the newly-written binary — the same exe launches fine moments later.
+  Added a short delay between the silent install and the relaunch. If this
+  still recurs for anyone, just relaunch Notro manually from the Start Menu;
+  the installed file itself is never corrupted by this.
+
 ## [2.5.0] - 2026-07-11
 
 ### Added
