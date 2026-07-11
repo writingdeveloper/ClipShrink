@@ -158,12 +158,19 @@ class PickerApi:
 
     def get_state(self) -> dict:
         from ..i18n import tr
+        cols = []
+        for name in self._library.collections():
+            icon_id = self._library.collection_icon(name)
+            cols.append({
+                "name": name,
+                "icon": self._asset_server.url_for(icon_id) if icon_id else None,
+            })
         return {
             "items": [self._display(i) for i in self._library.all_display_items()],
             "recent": [i["id"] for i in self._library.recent()],
             "folders": [{**f, "exists": os.path.isdir(f["path"])}
                         for f in self._library.folders()],
-            "collections": self._library.collections(),
+            "collections": cols,
             "strings": {k: tr(k) for k in PICKER_STRING_KEYS},
         }
 
