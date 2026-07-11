@@ -3,6 +3,24 @@
 All notable changes to this project are documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.2.0] - 2026-07-10
+
+### Added
+- **Semi-automatic updater** — Notro checks the GitHub Releases API on startup
+  and every 24h, downloads the new `Notro.exe` in the background, verifies its
+  **SHA256**, and offers **"Restart to update now"** from the tray. The swap is a
+  batch helper that waits for the process to exit, backs up the old exe
+  (`.bak` rollback on failure), replaces it, and relaunches. The tray also gains
+  a manual **"Check for updates"** item and an **"Automatic update checks"**
+  toggle. Frozen (exe) builds only — the dev run (`pythonw notro.py`) never
+  updates itself. The exe stays unsigned, so the first launch of a new version
+  still shows SmartScreen. Updater strings added in all five languages.
+- Release workflow now attaches `Notro.exe.sha256` for update verification.
+
+### Notes
+- The v2.1.0 → v2.2.0 hop is the last manual one (v2.1.0 has no updater); from
+  v2.2.0 onward, updates are delivered semi-automatically.
+
 ## [2.1.0] - 2026-07-10
 
 ### Changed

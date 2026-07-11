@@ -288,6 +288,60 @@ for _lang, _table in _PICKER_STRINGS.items():
     STRINGS[_lang].update(_table)
 del _PICKER_STRINGS
 
+
+# ---------- 자동 업데이터 (v2.2) 문자열 ----------
+_UPDATER_STRINGS = {
+    "en": {
+        "update_check": "Check for updates",
+        "update_checking": "Checking for updates…",
+        "update_none": "You're on the latest version.",
+        "update_ready": "Notro {ver} is ready — restart to update.",
+        "update_restart": "Restart to update now",
+        "update_auto": "Automatic update checks",
+        "update_failed": "Update check failed. Will retry later.",
+    },
+    "ko": {
+        "update_check": "업데이트 확인",
+        "update_checking": "업데이트 확인 중…",
+        "update_none": "최신 버전입니다.",
+        "update_ready": "Notro {ver} 준비됨 — 재시작하면 적용됩니다.",
+        "update_restart": "지금 재시작해 업데이트",
+        "update_auto": "자동 업데이트 확인",
+        "update_failed": "업데이트 확인 실패. 나중에 다시 시도합니다.",
+    },
+    "ja": {
+        "update_check": "アップデートを確認",
+        "update_checking": "アップデートを確認中…",
+        "update_none": "最新バージョンです。",
+        "update_ready": "Notro {ver} の準備ができました — 再起動で適用されます。",
+        "update_restart": "今すぐ再起動して更新",
+        "update_auto": "自動アップデート確認",
+        "update_failed": "アップデート確認に失敗しました。後で再試行します。",
+    },
+    "zh": {
+        "update_check": "检查更新",
+        "update_checking": "正在检查更新…",
+        "update_none": "已是最新版本。",
+        "update_ready": "Notro {ver} 已就绪 — 重启即可更新。",
+        "update_restart": "立即重启以更新",
+        "update_auto": "自动检查更新",
+        "update_failed": "检查更新失败。稍后重试。",
+    },
+    "es": {
+        "update_check": "Buscar actualizaciones",
+        "update_checking": "Buscando actualizaciones…",
+        "update_none": "Estás en la última versión.",
+        "update_ready": "Notro {ver} está listo — reinicia para actualizar.",
+        "update_restart": "Reiniciar para actualizar ahora",
+        "update_auto": "Comprobación automática de actualizaciones",
+        "update_failed": "Error al buscar actualizaciones. Se reintentará más tarde.",
+    },
+}
+
+for _lang, _table in _UPDATER_STRINGS.items():
+    STRINGS[_lang].update(_table)
+del _UPDATER_STRINGS
+
 current_lang = "en"  # 실행 시 set_language()로 설정됨
 
 

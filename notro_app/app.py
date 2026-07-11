@@ -53,6 +53,7 @@ def _enable_dpi_awareness():
 
 def main():
     import os
+    import sys
     if os.environ.get("NOTRO_DEBUG"):
         import faulthandler
         _fh = open(os.environ["NOTRO_DEBUG"] + ".stacks", "w", encoding="utf-8")
@@ -77,9 +78,21 @@ def main():
     monitor = Monitor()
     threading.Thread(target=monitor.run, daemon=True).start()
 
+    # 자동 업데이터는 frozen(exe)일 때만. on_ready는 아이콘 생성 후 재배선한다.
+    upd = None
+    if getattr(sys, "frozen", False):
+        from .updater import UpdateChecker
+        upd = UpdateChecker(
+            os.path.join(config.TEMP_DIR, "update"),
+            on_ready=lambda tag, exe: None,
+            is_enabled=lambda: config.get_setting_int("auto_update", 1) == 1)
+
     if not webview2_available():
         # 피커 없이 v1 모드로 동작 (압축 기능은 그대로)
-        icon = tray.build_icon(monitor)
+        icon = tray.build_icon(monitor, updater=upd)
+        if upd:
+            upd.on_ready = lambda tag, exe: icon.notify(tr("update_ready", ver=tag), APP_NAME)
+            upd.start()
         if first_run:
             threading.Timer(1.5, lambda: icon.notify(tr("notify_first_run"), APP_NAME)).start()
         threading.Timer(2.5, lambda: icon.notify(tr("notify_webview2_missing"), APP_NAME)).start()
@@ -111,12 +124,16 @@ def main():
     listener = HotkeyListener(on_hotkey=picker.toggle)
 
     icon = tray.build_icon(
-        monitor, picker=picker, listener=listener,
-        on_quit_extra=lambda: (listener.stop(), asset_server.stop(), picker.destroy()),
+        monitor, picker=picker, listener=listener, updater=upd,
+        on_quit_extra=lambda: (listener.stop(), asset_server.stop(), picker.destroy(),
+                               upd.stop() if upd else None),
     )
     listener.on_register_fail = lambda label: icon.notify(
         tr("notify_hotkey_fail", combo=label), APP_NAME)
     picker.on_notify = lambda msg: icon.notify(msg, APP_NAME)
+    if upd:
+        upd.on_ready = lambda tag, exe: icon.notify(tr("update_ready", ver=tag), APP_NAME)
+        upd.start()
 
     picker.create_window()
     icon.run_detached()

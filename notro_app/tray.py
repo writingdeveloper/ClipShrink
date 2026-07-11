@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import threading
 
 import pystray
 from PIL import Image, ImageDraw
@@ -27,7 +28,7 @@ def make_icon_image(active=True):
     return img
 
 
-def build_icon(monitor, picker=None, listener=None, on_quit_extra=None) -> "pystray.Icon":
+def build_icon(monitor, picker=None, listener=None, on_quit_extra=None, updater=None) -> "pystray.Icon":
     """트레이 아이콘 구성.
 
     picker/listener가 주어지면 피커 열기·핫키 메뉴가 추가된다 (없으면 v1 메뉴).
@@ -161,6 +162,44 @@ def build_icon(monitor, picker=None, listener=None, on_quit_extra=None) -> "pyst
             pystray.Menu.SEPARATOR,
         ]
 
+    # ---------- 업데이트 항목 (updater가 있을 때만) ----------
+    updater_items = []
+    if updater is not None:
+        def _auto_on():
+            # auto_update 미설정이면 기본 on(1)
+            return config.get_setting_int("auto_update", 1) == 1
+
+        def on_check_update(icon, item):
+            icon.notify(tr("update_checking"), APP_NAME)
+
+            def _bg():
+                updater.check_once()
+                if updater.ready_exe:
+                    icon.update_menu()
+                else:
+                    icon.notify(tr("update_none"), APP_NAME)
+            threading.Thread(target=_bg, daemon=True).start()
+
+        def on_restart_update(icon, item):
+            if updater.ready_exe:
+                from . import updater as um
+                um.apply_and_restart(updater.ready_exe,
+                                     os.path.dirname(updater.ready_exe))
+                on_quit(icon, item)
+
+        def on_toggle_auto(icon, item):
+            config.set_setting_flag("auto_update", not _auto_on())
+            icon.update_menu()
+
+        updater_items = [
+            pystray.MenuItem(lambda item: tr("update_restart"), on_restart_update,
+                             visible=lambda item: bool(updater.ready_exe)),
+            pystray.MenuItem(lambda item: tr("update_check"), on_check_update),
+            pystray.MenuItem(lambda item: tr("update_auto"), on_toggle_auto,
+                             checked=lambda item: _auto_on()),
+            pystray.Menu.SEPARATOR,
+        ]
+
     icon = pystray.Icon(
         APP_NAME,
         make_icon_image(True),
@@ -180,6 +219,7 @@ def build_icon(monitor, picker=None, listener=None, on_quit_extra=None) -> "pyst
                 on_toggle_startup,
                 checked=lambda item: is_startup_registered(),
             ),
+            *updater_items,
             pystray.MenuItem(lambda item: tr("quit"), on_quit),
         ),
     )
