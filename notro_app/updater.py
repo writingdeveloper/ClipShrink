@@ -9,7 +9,6 @@ import hashlib
 import json
 import os
 import subprocess
-import sys
 import threading
 import urllib.request
 
@@ -100,19 +99,15 @@ def download_and_verify(release: dict, dest_dir: str, downloader=_download):
     return exe_path
 
 
-def build_apply_bat(pid: int, setup_path: str, target_exe: str) -> str:
-    """앱(pid) 종료 대기 → NotroSetup.exe silent 설치 → 설치된 exe 재실행.
+def build_apply_bat(pid: int, setup_path: str) -> str:
+    """앱(pid) 종료 대기 → NotroSetup.exe를 silent 설치. **재실행은 하지 않는다.**
 
-    silent 설치는 완료 페이지가 없어 Inno `[Run] postinstall`이 실행되지 않으므로,
-    재실행은 이 헬퍼가 직접 담당한다. 또한 앱 종료를 먼저 기다려 설치와 종료의
-    레이스를 없앤다.
-
-    설치 직후 곧바로 재실행하면 "Failed to load Python DLL ... LoadLibrary:
-    지정된 모듈을 찾을 수 없습니다" 오류가 발생할 수 있다 — 서명되지 않은 exe가
-    막 디스크에 쓰인 직후라 Windows Defender 실시간 검사·파일 핸들 정리가 아직
-    끝나지 않은 상태에서 onefile 부트로더가 압축 해제를 시도하다 실패하는
-    타이밍 경합이다(같은 exe를 몇 초 뒤 다시 실행하면 정상 동작하는 것으로 확인).
-    설치 명령과 재실행 사이에 짧은 지연을 둬 회피한다."""
+    재실행은 인스톨러의 `[Run]` 항목(postinstall 플래그 없음)이 설치가 완전히
+    끝난 직후 담당한다. 이전에는 이 배치가 설치 명령 직후 곧바로 앱을 재실행했는데,
+    Inno Setup은 실행 시 자신을 임시 폴더로 복사해 재실행하므로 원본 프로세스가
+    **설치 도중 조기 반환**하고, 배치가 아직 교체 중인 exe를 실행해 onefile 부트로더의
+    Python DLL 압축 해제가 실패했다("Failed to load Python DLL ... LoadLibrary").
+    설치 완료 시점을 정확히 아는 Inno에게 재실행을 맡겨 이 경합을 제거한다."""
     return f'''@echo off
 :wait
 tasklist /FI "PID eq {pid}" 2>NUL | find "{pid}" >NUL
@@ -121,26 +116,20 @@ if not errorlevel 1 (
   goto wait
 )
 "{setup_path}" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
-timeout /t 3 /nobreak >NUL
-start "" "{target_exe}"
 del "%~f0"
 '''
 
 
 def apply_and_restart(setup_path: str, _spawn=None) -> None:
     """헬퍼 배치를 만들어 실행하고 즉시 반환한다. 배치가 현재 앱(pid) 종료를 기다린
-    뒤 NotroSetup.exe를 silent 설치하고 설치된 exe(`sys.executable`)를 재실행한다.
-    호출자는 이 함수 직후 앱을 종료해야 한다(트레이 on_quit). _spawn은 테스트 주입용.
-
-    이전 방식(앱이 setup을 직접 실행한 뒤 종료)은 (1) 설치와 종료의 레이스로 설치가
-    불안정했고 (2) Inno `[Run] postinstall`이 VERYSILENT에서 건너뛰어져 앱이 재실행되지
-    않았다. 헬퍼가 종료 대기 → 설치 → 재실행을 순차 처리해 두 문제를 모두 없앤다."""
+    뒤 NotroSetup.exe를 silent 설치한다. 재실행은 인스톨러 `[Run]`(설치 완료 직후)이
+    담당하므로 배치는 설치만 트리거한다 — 배치가 교체 중 exe를 조기 실행하던 경합을
+    없앤다. 호출자는 이 함수 직후 앱을 종료해야 한다(트레이 on_quit). _spawn은 테스트용."""
     spawn = _spawn or subprocess.Popen
-    target = sys.executable
     bat_dir = os.path.dirname(os.path.abspath(setup_path))
     bat = os.path.join(bat_dir, "apply_update.bat")
     with open(bat, "w", encoding="utf-8") as f:
-        f.write(build_apply_bat(os.getpid(), setup_path, target))
+        f.write(build_apply_bat(os.getpid(), setup_path))
     spawn(["cmd", "/c", bat], creationflags=CREATE_NO_WINDOW, close_fds=True)
 
 

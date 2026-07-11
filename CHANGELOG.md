@@ -3,6 +3,27 @@
 All notable changes to this project are documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.5.2] - 2026-07-11
+
+### Fixed
+- **Actually fixed "Failed to load Python DLL" after auto-update.** The v2.5.1
+  fix (a 3-second delay) wrongly blamed antivirus — but this machine has Defender
+  disabled, so that was never the cause, and the delay didn't help. The real root
+  cause: the helper batch launched the app right after kicking off the silent
+  install, but Inno Setup relaunches itself from a temp copy and returns *before*
+  the install finishes, so the app was started while its exe was still being
+  replaced — breaking onefile's Python-DLL extraction. Now the batch **only runs
+  the installer**, and the **installer's own `[Run]` step relaunches the app once
+  the install fully completes** (`postinstall` removed so it fires in silent
+  installs too; `RestartApplications=no` avoids a double launch). The installed
+  exe is never actually corrupted — if a launch ever fails, relaunching from the
+  Start Menu works.
+
+### Note
+- Upgrading *to* v2.5.2 must be done once manually (download `NotroSetup.exe`),
+  because the still-installed v2.5.0/v2.5.1 has the old broken relaunch. From
+  v2.5.2 onward the installer handles relaunch correctly.
+
 ## [2.5.1] - 2026-07-11
 
 ### Fixed

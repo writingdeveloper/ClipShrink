@@ -81,25 +81,16 @@ def test_download_and_verify_none_without_sha(tmp_path):
 
 
 # ---------- apply_and_restart (helper bat: wait → silent install → relaunch) ----------
-def test_build_apply_bat_has_pid_setup_target():
-    bat = updater.build_apply_bat(1234, r"C:\t\NotroSetup.exe", r"C:\app\Notro.exe")
+def test_build_apply_bat_waits_and_installs_without_relaunch():
+    """배치는 앱 종료를 기다린 뒤 silent 설치만 한다. 재실행은 인스톨러 [Run]이
+    담당하므로 배치에 start가 없어야 한다 — 배치가 교체 중 exe를 조기 실행해
+    'Failed to load Python DLL'이 나던 경합을 제거한다."""
+    bat = updater.build_apply_bat(1234, r"C:\t\NotroSetup.exe")
     assert "1234" in bat
-    assert r"C:\t\NotroSetup.exe" in bat
-    assert r"C:\app\Notro.exe" in bat
-    assert "/VERYSILENT" in bat
-    assert "start" in bat.lower()
     assert "tasklist" in bat.lower()  # 앱 종료 대기
-
-
-def test_build_apply_bat_delays_before_relaunch():
-    """설치 직후 곧바로 재실행하면 미서명 exe에 대한 AV 검사/핸들 정리 타이밍
-    경합으로 'Failed to load Python DLL' 오류가 나는 것을 실측 확인했다 —
-    silent 설치 명령과 재실행(start) 사이에 지연이 있어야 한다."""
-    bat = updater.build_apply_bat(1234, r"C:\t\NotroSetup.exe", r"C:\app\Notro.exe")
-    install_pos = bat.index("/VERYSILENT")
-    start_pos = bat.index('start "" "C:\\app\\Notro.exe"')
-    between = bat[install_pos:start_pos]
-    assert "timeout" in between.lower()  # 설치와 재실행 사이에 대기가 있어야 함
+    assert r"C:\t\NotroSetup.exe" in bat
+    assert "/VERYSILENT" in bat
+    assert "start " not in bat.lower()  # 재실행은 인스톨러 [Run]이 담당
 
 
 def test_apply_and_restart_writes_helper_bat_and_spawns_cmd(tmp_path):
@@ -113,7 +104,7 @@ def test_apply_and_restart_writes_helper_bat_and_spawns_cmd(tmp_path):
     with open(bat, encoding="utf-8") as f:
         content = f.read()
     assert "/VERYSILENT" in content
-    assert "start" in content.lower()
+    assert "start " not in content.lower()
 
 
 # ---------- UpdateChecker ----------
