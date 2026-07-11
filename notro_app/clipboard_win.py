@@ -29,7 +29,7 @@ CF_UNICODETEXT = 13
 GMEM_MOVEABLE = 0x0002
 
 # 우리가 만든 클립보드 데이터에 붙이는 마커 (무한 루프 방지)
-MARKER_FORMAT = user32.RegisterClipboardFormatW("ClipShrinkMarker")
+MARKER_FORMAT = user32.RegisterClipboardFormatW("NotroMarker")
 
 # 크로미움 계열(디스코드, 브라우저)이 이미지 복사 시 사용하는 PNG 포맷들
 PNG_FORMATS = [

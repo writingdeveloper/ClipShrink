@@ -14,7 +14,7 @@ _PRIMARY_LANG_MAP = {0x09: "en", 0x12: "ko", 0x11: "ja", 0x04: "zh", 0x0A: "es"}
 
 STRINGS = {
     "en": {
-        "tooltip": "ClipShrink v{ver} — auto-compress images for Discord's upload limit",
+        "tooltip": "Notro v{ver} — auto-compress images for Discord's upload limit",
         "pause": "Pause watching",
         "resume": "Resume watching",
         "history": "Recent activity",
@@ -33,7 +33,7 @@ STRINGS = {
         "notify_first_run": "Running in the tray. To launch at startup, enable it from the menu → 'Run at Windows startup'.",
     },
     "ko": {
-        "tooltip": "ClipShrink v{ver} — 디스코드 업로드 한도 자동 압축",
+        "tooltip": "Notro v{ver} — 디스코드 업로드 한도 자동 압축",
         "pause": "감시 중지",
         "resume": "감시 시작",
         "history": "최근 처리 내역",
@@ -52,7 +52,7 @@ STRINGS = {
         "notify_first_run": "트레이에서 실행 중입니다. 부팅 시 자동 실행하려면 메뉴 → 'Windows 시작 시 자동 실행'을 켜세요.",
     },
     "ja": {
-        "tooltip": "ClipShrink v{ver} — Discordのアップロード上限に自動圧縮",
+        "tooltip": "Notro v{ver} — Discordのアップロード上限に自動圧縮",
         "pause": "監視を停止",
         "resume": "監視を再開",
         "history": "最近の処理履歴",
@@ -71,7 +71,7 @@ STRINGS = {
         "notify_first_run": "トレイで実行中です。起動時に自動実行するには、メニュー →「Windows起動時に実行」をオンにしてください。",
     },
     "zh": {
-        "tooltip": "ClipShrink v{ver} — 自动压缩图片以符合 Discord 上传限制",
+        "tooltip": "Notro v{ver} — 自动压缩图片以符合 Discord 上传限制",
         "pause": "暂停监视",
         "resume": "恢复监视",
         "history": "最近处理记录",
@@ -90,7 +90,7 @@ STRINGS = {
         "notify_first_run": "正在托盘运行。如需开机自动启动，请在菜单 →「开机时自动运行」中开启。",
     },
     "es": {
-        "tooltip": "ClipShrink v{ver} — comprime imágenes para el límite de subida de Discord",
+        "tooltip": "Notro v{ver} — comprime imágenes para el límite de subida de Discord",
         "pause": "Pausar la supervisión",
         "resume": "Reanudar la supervisión",
         "history": "Actividad reciente",

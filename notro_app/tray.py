@@ -15,11 +15,15 @@ from .i18n import set_language, tr
 
 
 def make_icon_image(active=True):
+    """Notro 트레이 아이콘: 니트로식 블러플 캡슐에 'not Nitro' 대각선 슬래시.
+    active=False(감시 중지)면 회색으로 표시."""
     img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    color = (88, 101, 242, 255) if active else (128, 128, 128, 255)  # 디스코드 블루
-    d.rounded_rectangle([4, 12, 60, 52], radius=10, fill=color)
-    d.ellipse([24, 22, 40, 42], fill=(255, 255, 255, 255))
+    color = (88, 101, 242, 255) if active else (128, 128, 128, 255)  # 디스코드 블러플
+    # 니트로 캡슐(알약)
+    d.rounded_rectangle([12, 20, 52, 44], radius=12, fill=color)
+    # "not Nitro" 대각선 슬래시 (흰 선으로 캡슐 위에 또렷하게)
+    d.line([16, 46, 48, 18], fill=(255, 255, 255, 255), width=7)
     return img
 
 

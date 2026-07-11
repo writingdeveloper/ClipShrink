@@ -1,6 +1,6 @@
-"""Tests for ClipShrink's i18n layer."""
+"""Tests for Notro's i18n layer."""
 
-from clipshrink_app import i18n
+from notro_app import i18n
 
 
 def test_all_languages_have_same_keys():

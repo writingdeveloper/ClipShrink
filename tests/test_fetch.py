@@ -6,8 +6,8 @@ import os
 import pytest
 from PIL import Image
 
-from clipshrink_app import fetch
-from clipshrink_app.library import Library
+from notro_app import fetch
+from notro_app.library import Library
 
 
 # ---------- 픽스처 ----------

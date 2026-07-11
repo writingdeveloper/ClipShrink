@@ -1,6 +1,6 @@
 """hotkey 모듈의 순수 부분 테스트 (스레드/Win32 등록은 수동 검증)."""
 
-from clipshrink_app import hotkey
+from notro_app import hotkey
 
 
 def test_choices_have_label_mod_vk():

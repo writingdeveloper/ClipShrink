@@ -10,9 +10,9 @@ import os
 
 from PIL import Image
 
-from clipshrink_app import fetch, i18n
-from clipshrink_app.library import Library
-from clipshrink_app.picker import window
+from notro_app import fetch, i18n
+from notro_app.library import Library
+from notro_app.picker import window
 
 
 def png_bytes():

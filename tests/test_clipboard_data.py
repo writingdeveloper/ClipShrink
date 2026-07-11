@@ -6,8 +6,8 @@ import struct
 
 from PIL import Image
 
-from clipshrink_app.clipboard_win import build_drop_data
-from clipshrink_app.picker.window import prepare_for_paste
+from notro_app.clipboard_win import build_drop_data
+from notro_app.picker.window import prepare_for_paste
 
 
 def test_build_drop_data_layout():

@@ -26,10 +26,10 @@ jobs:
         run: pip install --upgrade pyinstaller -r requirements.txt
 
       - name: Build EXE
-        run: pyinstaller --onefile --noconsole --name ClipShrink --clean --add-data "clipshrink_app\picker\ui;clipshrink_app/picker/ui" --collect-all webview clipshrink.py
+        run: pyinstaller --onefile --noconsole --name Notro --clean --add-data "notro_app\picker\ui;notro_app/picker/ui" --collect-all webview notro.py
 
       - name: Publish release with EXE
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/ClipShrink.exe
+          files: dist/Notro.exe
           generate_release_notes: true

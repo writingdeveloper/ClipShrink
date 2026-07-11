@@ -3,6 +3,29 @@
 All notable changes to this project are documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] - 2026-07-10
+
+### Changed
+- **Renamed the project from ClipShrink to Notro** — a nod to "not Nitro". What
+  began as a clipboard image compressor is now a ToS-safe companion for Discord's
+  Nitro-gated emoji/sticker/GIF picker, and the name reflects that. On first
+  launch your existing library (`%APPDATA%\ClipShrink`) and settings are migrated
+  automatically to the new location (`%APPDATA%\Notro`); if you had "Run at
+  Windows startup" enabled, it is re-registered under the new name.
+- New app / tray icon.
+- Package renamed `clipshrink_app` → `notro_app`, entry point `clipshrink.py` →
+  `notro.py`, executable `ClipShrink.exe` → `Notro.exe`.
+
+### Fixed
+- Three picker gaps surfaced by a v2.0 spec audit, each fixed with tests
+  (49 → 62 passing):
+  - **APNG→GIF conversion failure** now falls back to a static first-frame PNG
+    and flags the item with a warning badge, instead of aborting registration
+    with a misleading "download failed" error (spec §7).
+  - **Clipboard image paste** — you can now paste an image straight into the
+    picker to add it; previously only drag-and-drop registered files (spec §5).
+  - Search moved into the library module as the canonical owner (spec §3).
+
 ## [2.0.0] - 2026-07-09
 
 ### Added

@@ -1,4 +1,4 @@
-/* ClipShrink Picker UI. pywebview 부재 시(mock) 브라우저 단독 미리보기 지원. */
+/* Notro Picker UI. pywebview 부재 시(mock) 브라우저 단독 미리보기 지원. */
 const $ = (s) => document.querySelector(s);
 const state = { items: [], recent: [], folders: [], strings: {}, tab: "emoji", query: "" };
 

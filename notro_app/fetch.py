@@ -58,7 +58,7 @@ def canonical_url(p: ParsedAsset) -> str:
 
 def download(url: str, dest_path: str, timeout: int = 10) -> None:
     req = urllib.request.Request(
-        url, headers={"User-Agent": f"ClipShrink/{__version__}"})
+        url, headers={"User-Agent": f"Notro/{__version__}"})
     with urllib.request.urlopen(req, timeout=timeout) as r, \
             open(dest_path, "wb") as f:
         shutil.copyfileobj(r, f)

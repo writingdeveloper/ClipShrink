@@ -5,7 +5,7 @@ import time
 
 from PIL import Image
 
-from clipshrink_app.library import Library, SUPPORTED_EXTS
+from notro_app.library import Library, SUPPORTED_EXTS
 
 
 def make_lib(tmp_path):

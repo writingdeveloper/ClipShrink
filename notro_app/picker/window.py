@@ -15,7 +15,7 @@ user32 = ctypes.windll.user32
 WIN_W, WIN_H = 440, 420
 MONITOR_DEFAULTTONEAREST = 2
 
-_DEBUG_LOG = os.environ.get("CLIPSHRINK_DEBUG", "")
+_DEBUG_LOG = os.environ.get("NOTRO_DEBUG", "")
 
 
 def _dbg(msg: str) -> None:
@@ -32,7 +32,7 @@ def _dbg(msg: str) -> None:
 def ui_index_path() -> str:
     """개발 실행과 PyInstaller(--add-data) 실행 모두에서 index.html 절대경로."""
     if getattr(sys, "_MEIPASS", None):
-        return os.path.join(sys._MEIPASS, "clipshrink_app", "picker", "ui", "index.html")
+        return os.path.join(sys._MEIPASS, "notro_app", "picker", "ui", "index.html")
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui", "index.html")
 
 
@@ -287,14 +287,14 @@ class PickerController:
     def create_window(self):
         import webview
         self.window = webview.create_window(
-            "ClipShrink Picker", url=ui_index_path(), js_api=self._api,
+            "Notro Picker", url=ui_index_path(), js_api=self._api,
             width=WIN_W, height=WIN_H, frameless=True, on_top=True,
             hidden=True, resizable=False, easy_drag=False,
         )
         return self.window
 
     def _native_hwnd(self) -> int:
-        return user32.FindWindowW(None, "ClipShrink Picker")
+        return user32.FindWindowW(None, "Notro Picker")
 
     def show_at_cursor(self):
         import time as _t

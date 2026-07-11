@@ -1,7 +1,7 @@
-# ClipShrink
+# Notro
 
 <p align="center">
-  <img src="docs/icon.png" width="96" alt="ClipShrink 아이콘">
+  <img src="docs/icon.png" width="96" alt="Notro 아이콘">
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@
 - 이름·키워드 검색, "최근 사용" 섹션 지원.
 - 한도 초과 항목: 정지 이미지는 자동 압축, 초과 GIF는 경고와 함께 원본 전송.
 
-**ToS 안전 설계:** ClipShrink는 디스코드 클라이언트를 패치하지 않고, 계정·토큰도
+**ToS 안전 설계:** Notro는 디스코드 클라이언트를 패치하지 않고, 계정·토큰도
 일절 건드리지 않습니다(셀프봇 아님). 클립보드 준비와 로컬 <kbd>Ctrl</kbd>+<kbd>V</kbd>
 입력만 수행합니다 — Windows 이모지 패널(<kbd>Win</kbd>+<kbd>.</kbd>)과 같은 부류의
 입력 자동화입니다. 정직한 한계: 받는 사람에게는 네이티브 인라인 이모지가 아니라
@@ -56,7 +56,7 @@
 
 ## 내려받기 & 실행 (권장)
 
-[**Releases**](../../releases) 페이지에서 최신 `ClipShrink.exe`를 받아 실행하면 끝입니다.
+[**Releases**](../../releases) 페이지에서 최신 `Notro.exe`를 받아 실행하면 끝입니다.
 
 - 트레이에 상주합니다. 아이콘 우클릭 → 피커 열기, 피커 단축키 변경,
   감시 중지/시작, 최근 처리 내역, 업로드 한도(10/50/500MB) 변경, 언어 변경,
@@ -72,7 +72,7 @@
 
 ```sh
 pip install -r requirements.txt
-pythonw clipshrink.py
+pythonw notro.py
 ```
 
 Windows + **Python 3.10 이상**이 필요합니다.
@@ -83,11 +83,11 @@ Windows + **Python 3.10 이상**이 필요합니다.
 build.bat
 ```
 
-결과물은 `dist\ClipShrink.exe`. (Python 3.10+ 필요, 스크립트가 PyInstaller를 설치합니다.)
+결과물은 `dist\Notro.exe`. (Python 3.10+ 필요, 스크립트가 PyInstaller를 설치합니다.)
 
 ## 설정 변경
 
-`clipshrink_app/config.py`(한도)와 `clipshrink_app/compress.py`(품질 단계)의
+`notro_app/config.py`(한도)와 `notro_app/compress.py`(품질 단계)의
 설정 값을 수정하면 됩니다:
 
 | 항목 | 기본값 | 설명 |
@@ -99,7 +99,7 @@ build.bat
 
 ## 참고
 
-- 압축 파일은 `%TEMP%\ClipShrink`에 저장되며 1일 지난 파일은 자동 삭제됩니다.
+- 압축 파일은 `%TEMP%\Notro`에 저장되며 1일 지난 파일은 자동 삭제됩니다.
 - 10MB가 넘는 이미지 **파일**을 복사한 경우(<kbd>Ctrl</kbd>+<kbd>C</kbd>)에도 동일하게 압축됩니다.
 - **다국어:** English·한국어·日本語·中文(简体)·Español 지원. Windows 언어를 자동 감지하며,
   트레이 **언어** 메뉴에서 언제든 바꿀 수 있습니다.
@@ -115,5 +115,5 @@ pytest
 
 [MIT](LICENSE).
 
-> ClipShrink는 Discord와 무관한 비공식 도구이며, **Discord Inc.가 제휴/후원/승인한 프로젝트가
+> Notro는 Discord와 무관한 비공식 도구이며, **Discord Inc.가 제휴/후원/승인한 프로젝트가
 > 아닙니다.** "Discord"는 Discord Inc.의 상표입니다.

@@ -1,7 +1,7 @@
-# ClipShrink
+# Notro
 
 <p align="center">
-  <img src="docs/icon.png" width="96" alt="ClipShrink icon">
+  <img src="docs/icon.png" width="96" alt="Notro icon">
 </p>
 
 <p align="center">
@@ -47,7 +47,7 @@ with three tabs: **Emoji / Stickers / GIFs**.
 - Items over the upload limit: static images are auto-compressed; oversized
   GIFs are sent as-is with a warning.
 
-**ToS safety, by design:** ClipShrink never patches the Discord client and never
+**ToS safety, by design:** Notro never patches the Discord client and never
 touches your account or token (no self-bot behavior). It only prepares your
 clipboard and simulates a local <kbd>Ctrl</kbd>+<kbd>V</kbd> — the same kind of
 input automation as the Windows emoji panel (<kbd>Win</kbd>+<kbd>.</kbd>).
@@ -59,7 +59,7 @@ picker is disabled and compression keeps working.
 
 ## Download & run (recommended)
 
-Grab the latest `ClipShrink.exe` from the [**Releases**](../../releases) page and run it.
+Grab the latest `Notro.exe` from the [**Releases**](../../releases) page and run it.
 
 - It runs in the tray. Right-click the icon for: open the picker, change the
   picker hotkey, pause/resume, recent history, switch the upload limit
@@ -76,7 +76,7 @@ Grab the latest `ClipShrink.exe` from the [**Releases**](../../releases) page an
 
 ```sh
 pip install -r requirements.txt
-pythonw clipshrink.py
+pythonw notro.py
 ```
 
 Requires **Python 3.10+** on Windows.
@@ -87,12 +87,12 @@ Requires **Python 3.10+** on Windows.
 build.bat
 ```
 
-Output: `dist\ClipShrink.exe`. Requires Python 3.10+ (the script installs PyInstaller).
+Output: `dist\Notro.exe`. Requires Python 3.10+ (the script installs PyInstaller).
 
 ## Configuration
 
-Edit the values in `clipshrink_app/config.py` (limits) and
-`clipshrink_app/compress.py` (quality steps):
+Edit the values in `notro_app/config.py` (limits) and
+`notro_app/compress.py` (quality steps):
 
 | Setting | Default | Description |
 |---|---|---|
@@ -103,10 +103,10 @@ Edit the values in `clipshrink_app/config.py` (limits) and
 
 ## Notes
 
-- Compressed files are written to `%TEMP%\ClipShrink` and auto-deleted after 1 day.
+- Compressed files are written to `%TEMP%\Notro` and auto-deleted after 1 day.
 - Copying an image **file** (<kbd>Ctrl</kbd>+<kbd>C</kbd>) larger than the limit is
   compressed the same way.
-- **Languages:** English, 한국어, 日本語, 中文(简体), Español. ClipShrink auto-detects
+- **Languages:** English, 한국어, 日本語, 中文(简体), Español. Notro auto-detects
   your Windows language and can be switched anytime from the tray **Language** menu.
 
 ## Development
@@ -120,5 +120,5 @@ pytest
 
 [MIT](LICENSE).
 
-> ClipShrink is an unofficial tool — **not affiliated with, endorsed by, or sponsored by
+> Notro is an unofficial tool — **not affiliated with, endorsed by, or sponsored by
 > Discord Inc.** "Discord" is a trademark of Discord Inc.

@@ -4,10 +4,10 @@ cd /d "%~dp0"
 echo [1/3] 의존성 설치...
 pip install --upgrade pyinstaller -r requirements.txt || goto :error
 echo [2/3] EXE 빌드...
-pyinstaller --onefile --noconsole --name ClipShrink --clean ^
-  --add-data "clipshrink_app\picker\ui;clipshrink_app/picker/ui" ^
-  --collect-all webview clipshrink.py || goto :error
-echo [3/3] 완료! 결과물: dist\ClipShrink.exe
+pyinstaller --onefile --noconsole --name Notro --clean ^
+  --add-data "notro_app\picker\ui;notro_app/picker/ui" ^
+  --collect-all webview notro.py || goto :error
+echo [3/3] 완료! 결과물: dist\Notro.exe
 echo 실행하면 트레이에 상주합니다. 피커 단축키: Ctrl+Shift+E
 pause
 exit /b 0

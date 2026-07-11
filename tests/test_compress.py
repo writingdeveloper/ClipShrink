@@ -1,14 +1,14 @@
-"""Unit tests for ClipShrink's pure compression logic.
+"""Unit tests for Notro's pure compression logic.
 
 These exercise ``compress_image`` / ``estimate_png_size`` only — no clipboard or
-Windows API calls. Importing ``clipshrink_app`` modules requires Windows (they
+Windows API calls. Importing ``notro_app`` modules requires Windows (they
 bind to user32/kernel32 at import time), so these run on the ``windows-latest``
 CI runner.
 """
 
 from PIL import Image
 
-from clipshrink_app import compress, config
+from notro_app import compress, config
 
 
 def test_small_image_compresses_to_webp():

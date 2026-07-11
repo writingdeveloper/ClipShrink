@@ -34,14 +34,14 @@ def set_limit_mb(mb: int) -> None:
     LIMIT_BYTES = compute_limit_bytes(mb)
 
 
-TEMP_DIR = os.path.join(tempfile.gettempdir(), "ClipShrink")
+TEMP_DIR = os.path.join(tempfile.gettempdir(), "Notro")
 os.makedirs(TEMP_DIR, exist_ok=True)
 
 # 피커 라이브러리 영구 데이터
-DATA_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "ClipShrink")
+DATA_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "Notro")
 
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
-SETTINGS_KEY = r"Software\ClipShrink"
+SETTINGS_KEY = r"Software\Notro"
 
 
 # ---------- 시작 프로그램 등록 ----------
@@ -82,7 +82,7 @@ def set_startup(enable: bool):
 
 
 def get_setting_int(name: str, default: int = 0) -> int:
-    r"""HKCU\Software\ClipShrink 아래의 DWORD 값을 읽는다 (없으면 default)."""
+    r"""HKCU\Software\Notro 아래의 DWORD 값을 읽는다 (없으면 default)."""
     import winreg
 
     try:
@@ -112,7 +112,7 @@ def set_setting_flag(name: str, value: bool = True):
 
 
 def get_setting_str(name: str, default: str = "") -> str:
-    r"""HKCU\Software\ClipShrink 아래의 문자열 값을 읽는다 (없으면 default)."""
+    r"""HKCU\Software\Notro 아래의 문자열 값을 읽는다 (없으면 default)."""
     import winreg
 
     try:
@@ -144,7 +144,7 @@ def ensure_single_instance():
     k32 = ctypes.WinDLL("kernel32", use_last_error=True)
     k32.CreateMutexW.restype = wt.HANDLE
     k32.CreateMutexW.argtypes = [wt.LPVOID, wt.BOOL, wt.LPCWSTR]
-    k32.CreateMutexW(None, False, "Local\\ClipShrink_SingleInstance")
+    k32.CreateMutexW(None, False, "Local\\Notro_SingleInstance")
     if ctypes.get_last_error() == 183:  # ERROR_ALREADY_EXISTS
         sys.exit(0)
 
@@ -158,3 +158,80 @@ def cleanup_temp():
                 os.remove(p)
     except Exception:
         pass
+
+
+# ---------- v2.0 'ClipShrink' → Notro 리브랜딩 데이터 이전 ----------
+_LEGACY_APP_NAME = "ClipShrink"
+
+
+def migrate_legacy_data():
+    r"""구 'ClipShrink' 사용자 데이터·설정을 'Notro'로 1회 이전한다.
+
+    - 라이브러리 폴더 %APPDATA%\ClipShrink → %APPDATA%\Notro
+    - 설정 레지스트리 HKCU\Software\ClipShrink → HKCU\Software\Notro
+    - 자동 시작 Run 값: 구 이름 제거 후, 켜져 있었다면 새 이름으로 재등록
+
+    새 위치가 이미 있으면 각 단계를 건너뛰어 반복 호출해도 안전하다. 등록해 둔
+    이모지·스티커 라이브러리를 리브랜딩으로 잃지 않게 하려는 목적이다."""
+    _migrate_data_dir()
+    _migrate_settings_key()
+    _migrate_run_value()
+
+
+def _migrate_data_dir():
+    import shutil
+    legacy = os.path.join(
+        os.environ.get("APPDATA", os.path.expanduser("~")), _LEGACY_APP_NAME)
+    if os.path.isdir(legacy) and not os.path.isdir(DATA_DIR):
+        try:
+            shutil.move(legacy, DATA_DIR)
+        except Exception:
+            pass
+
+
+def _migrate_settings_key():
+    """구 설정 키의 값을 새 키로 복사 (새 키에 이미 있는 값은 보존)."""
+    import winreg
+
+    try:
+        src = winreg.OpenKey(winreg.HKEY_CURRENT_USER, rf"Software\{_LEGACY_APP_NAME}")
+    except OSError:
+        return
+    try:
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, SETTINGS_KEY) as dst:
+            i = 0
+            while True:
+                try:
+                    name, value, vtype = winreg.EnumValue(src, i)
+                except OSError:
+                    break
+                i += 1
+                try:
+                    winreg.QueryValueEx(dst, name)  # 이미 있으면 보존
+                except OSError:
+                    winreg.SetValueEx(dst, name, 0, vtype, value)
+    finally:
+        winreg.CloseKey(src)
+
+
+def _migrate_run_value():
+    """자동 시작 Run 키의 구 이름 값을 제거하고, 켜져 있었다면 새 이름으로 재등록."""
+    import winreg
+
+    had_legacy = False
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0,
+                            winreg.KEY_ALL_ACCESS) as key:
+            try:
+                winreg.QueryValueEx(key, _LEGACY_APP_NAME)
+                had_legacy = True
+                winreg.DeleteValue(key, _LEGACY_APP_NAME)
+            except OSError:
+                pass
+    except OSError:
+        pass
+    if had_legacy:
+        try:
+            set_startup(True)  # 새 이름(APP_NAME) + 현재 실행 경로로 재등록
+        except Exception:
+            pass

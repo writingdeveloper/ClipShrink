@@ -53,13 +53,14 @@ def _enable_dpi_awareness():
 
 def main():
     import os
-    if os.environ.get("CLIPSHRINK_DEBUG"):
+    if os.environ.get("NOTRO_DEBUG"):
         import faulthandler
-        _fh = open(os.environ["CLIPSHRINK_DEBUG"] + ".stacks", "w", encoding="utf-8")
+        _fh = open(os.environ["NOTRO_DEBUG"] + ".stacks", "w", encoding="utf-8")
         faulthandler.dump_traceback_later(18, file=_fh)
 
     _enable_dpi_awareness()
     ensure_single_instance()
+    config.migrate_legacy_data()  # v2.0 ClipShrink → Notro 데이터/설정 이전 (1회)
     cleanup_temp()
 
     # 저장된 업로드 한도 불러오기 (없으면 기본값 유지)
@@ -127,7 +128,7 @@ def main():
 
     # QA 훅: 핫키와 동일한 코드 경로(toggle)를 합성 키 입력 없이 구동
     import os
-    if os.environ.get("CLIPSHRINK_DEBUG_AUTOSHOW"):
+    if os.environ.get("NOTRO_DEBUG_AUTOSHOW"):
         threading.Timer(3.0, picker.toggle).start()
 
     # http_server=False: UI를 file:// origin으로 로드해 로컬 자산 <img src="file:///...">
