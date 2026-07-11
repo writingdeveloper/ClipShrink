@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT">
 </p>
 
-<p align="center"><a href="README.md">English</a> | <b>한국어</b></p>
+<p align="center"><a href="README.md">English</a> | <b>한국어</b> | <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a></p>
 
 디스코드 무료 유저를 위한 트레이 상주 프로그램입니다. 캡처한 이미지가
 무료 업로드 한도(10MB)를 넘으면 클립보드에서 **자동으로 압축**해 주고,
