@@ -106,25 +106,27 @@ def _first_frame_png(src: str, dest: str) -> None:
 def _finalize_asset(library, tmp_path: str, ext: str) -> tuple[str, bool, bool]:
     """APNG면 GIF로 변환해 저장, 아니면 그대로.
 
-    (최종 파일명, animated, convert_failed) 반환. APNG→GIF 변환이 실패하면
-    정지 PNG(첫 프레임)로 폴백하고 convert_failed=True (스펙 §7 — 등록 자체는
-    성공시키고 항목에 경고 배지를 남긴다)."""
+    (최종 파일명, animated, convert_failed) 반환. 신규 등록은 항상 미분류
+    폴더에 쓴다 — 사용자가 이후 우클릭으로 컬렉션을 지정하는 기존 흐름과 일치.
+    APNG→GIF 변환이 실패하면 정지 PNG(첫 프레임)로 폴백하고 convert_failed=True
+    (스펙 §7 — 등록 자체는 성공시키고 항목에 경고 배지를 남긴다)."""
+    dest_dir = library.collection_dir("")
     if ext == ".png" and is_apng(tmp_path):
         gif_name = library.new_asset_filename(".gif")
-        gif_path = os.path.join(library.assets_dir, gif_name)
+        gif_path = os.path.join(dest_dir, gif_name)
         try:
             apng_to_gif(tmp_path, gif_path)
         except Exception:
             if os.path.exists(gif_path):  # 부분 생성된 GIF 정리
                 os.remove(gif_path)
             png_name = library.new_asset_filename(".png")
-            _first_frame_png(tmp_path, os.path.join(library.assets_dir, png_name))
+            _first_frame_png(tmp_path, os.path.join(dest_dir, png_name))
             os.remove(tmp_path)
             return png_name, False, True
         os.remove(tmp_path)
         return gif_name, True, False
     filename = library.new_asset_filename(ext)
-    final = os.path.join(library.assets_dir, filename)
+    final = os.path.join(dest_dir, filename)
     os.replace(tmp_path, final)
     return filename, ext == ".gif" or sniff_animated(final), False
 
