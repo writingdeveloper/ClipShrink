@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from notro_app.video import VideoMeta, parse_ffmpeg_info, EncodePlan, plan_encode, build_args, parse_progress
+from notro_app.video_window import fmt_dur, fmt_size
 import notro_app.video as video_mod
 
 SAMPLE = """ffmpeg version 7.1 Copyright (c) 2000-2024
@@ -307,3 +308,16 @@ def test_terminate_all_kills_tracked_processes():
         assert p not in video_mod._ACTIVE
     finally:
         video_mod._ACTIVE.discard(p)
+
+
+# --- video_window 포매터 (순수 함수) ----------------------------------------
+
+def test_fmt_size():
+    assert fmt_size(9_961_472) == "9.5MB"
+    assert fmt_size(512) == "0.0MB"
+
+
+def test_fmt_dur():
+    assert fmt_dur(72.34) == "1:12"
+    assert fmt_dur(5) == "0:05"
+    assert fmt_dur(3661) == "61:01"
