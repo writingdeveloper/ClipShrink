@@ -23,6 +23,17 @@ COVER_ART = """ffmpeg version 7.1 Copyright (c) 2000-2024
 At least one output file must be specified
 """
 
+# 오디오 파일(예: mp3/m4a)의 커버 아트도 mjpeg "(attached pic)" 비디오 스트림으로 잡힌다.
+# 이 경우 진짜 영상 스트림이 하나도 없으므로 None을 돌려줘야 한다 — 그렇지 않으면
+# 오디오 파일을 "비디오"로 오인해 압축 확인 창을 잘못 띄우게 된다(no-false-positive-window
+# 불변조건).
+AUDIO_WITH_COVER_ART = """ffmpeg version 7.1 Copyright (c) 2000-2024
+  Duration: 00:03:00.00, start: 0.000000, bitrate: 128 kb/s
+  Stream #0:0[0x1]: Video: mjpeg (Baseline), yuvj420p(pc), 320x240 [SAR 1:1 DAR 4:3], 90k tbr, 90k tbn (attached pic)
+  Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 44100 Hz, stereo, fltp, 128 kb/s (default)
+At least one output file must be specified
+"""
+
 
 def test_parses_duration_resolution_fps_audio():
     m = parse_ffmpeg_info(SAMPLE)
@@ -44,6 +55,13 @@ def test_skips_cover_art_stream_and_picks_real_video():
     # 표지 이미지(mjpeg, 320x240, attached pic)가 아니라 실제 영상(h264, 1920x1080)을 골라야 한다
     m = parse_ffmpeg_info(COVER_ART)
     assert (m.width, m.height, m.fps) == (1920, 1080, 59.94)
+
+
+def test_returns_none_when_every_video_stream_is_attached_pic():
+    # 비디오 스트림이 전부 "(attached pic)"뿐이면(예: 커버 아트가 있는 오디오 파일)
+    # 진짜 영상이 없다는 뜻이므로 None이어야 한다 — "확인 창은 진짜 비디오에만
+    # 뜬다"는 불변조건을 지킨다.
+    assert parse_ffmpeg_info(AUDIO_WITH_COVER_ART) is None
 
 
 # plan_encode 테스트
@@ -72,6 +90,10 @@ def test_long_clip_drops_to_480p():
     p = plan_encode(_meta(120), LIMIT)         # 2분 → 약 568kbps
     assert p.height == 480
     assert p.warn is True
+    # video_kbps(568) < need(500)*1.5(750) → 60fps를 감당할 여유가 없어 30으로 낮춘다.
+    # (원본 fps는 60 — _meta()의 기본값.) 480p rung의 fps 판단이 이제까지 테스트로
+    # 고정돼 있지 않았다.
+    assert p.fps == 30
 
 
 def test_too_long_returns_none():
@@ -221,6 +243,23 @@ def test_probe_returns_none_when_ffmpeg_missing(monkeypatch):
 
     monkeypatch.setattr(video_mod.subprocess, "run", boom)
     assert video_mod.probe("ffmpeg.exe", "clip.mp4") is None
+
+
+def test_encode_returns_false_when_popen_raises_oserror(monkeypatch, tmp_path):
+    # probe()의 OSError 방어(위 테스트)와 대칭: find_ffmpeg()가 찾아낸 경로의 exe가
+    # encode() 시점엔 사라졌거나(외부에서 삭제) 실행 권한이 없는 경우를 흉내낸다.
+    # Popen 자체가 예외를 던지면 encode()는 이를 잡아 False를 돌려줘야 한다 — 그렇지
+    # 않으면 이 예외가 _work 스레드까지 전파돼 조용히 스레드가 죽는다.
+    def boom(*a, **k):
+        raise OSError("ffmpeg.exe vanished")
+
+    monkeypatch.setattr(video_mod.subprocess, "Popen", boom)
+    dest = tmp_path / "out.mp4"
+    plan = EncodePlan(height=480, fps=30, video_kbps=500, audio_kbps=96, warn=True)
+    ok = video_mod.encode("ffmpeg.exe", "in.mp4", plan, str(dest))
+
+    assert ok is False
+    assert len(video_mod._ACTIVE) == 0    # Popen이 실패했으니 등록될 프로세스도 없다
 
 
 def _fake_encode_proc(lines, returncode=0):

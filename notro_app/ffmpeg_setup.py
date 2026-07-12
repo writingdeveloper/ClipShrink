@@ -84,6 +84,8 @@ def download_ffmpeg(on_progress=None) -> str | None:
         return None
 
     tmp = os.path.join(config.BIN_DIR, "_ffmpeg_wheel.zip")
+    out = os.path.join(config.BIN_DIR, "ffmpeg.exe")
+    part = out + ".part"     # 완성된 파일만 out으로 교체한다 — 중간에 죽어도 out은 안 건드린다
     try:
         os.makedirs(config.BIN_DIR, exist_ok=True)
         _download(url, tmp, on_progress)
@@ -93,9 +95,15 @@ def download_ffmpeg(on_progress=None) -> str | None:
             member = _pick_binary(z.namelist())
             if not member:
                 return None
-            out = os.path.join(config.BIN_DIR, "ffmpeg.exe")
-            with z.open(member) as src, open(out, "wb") as f:
+            with z.open(member) as src, open(part, "wb") as f:
                 shutil.copyfileobj(src, f)
+        # 디스크 꽉 참·프로세스 강제 종료 등으로 쓰기가 중간에 죽으면 out은 이전 상태
+        # (없음 또는 이전 정상본) 그대로 남아야 한다 — 직접 out에 썼다가는 손상된 exe가
+        # 영구히 남고, find_ffmpeg()는 os.path.isfile만 확인하므로 그걸 계속 신뢰해
+        # probe()가 매번 조용히 실패하는 영구 무응답 상태(updater.py가 이미 막아 둔
+        # 종류의 문제)에 빠진다(리뷰 지적). os.replace는 원자적이라 절반짜리 out은
+        # 존재할 수 없다.
+        os.replace(part, out)
         return out
     except Exception:
         return None
@@ -103,5 +111,10 @@ def download_ffmpeg(on_progress=None) -> str | None:
         if os.path.exists(tmp):
             try:
                 os.remove(tmp)
+            except OSError:
+                pass
+        if os.path.exists(part):     # 실패로 남은 미완성 파일 정리 (성공 시엔 이미 out으로 이동됨)
+            try:
+                os.remove(part)
             except OSError:
                 pass

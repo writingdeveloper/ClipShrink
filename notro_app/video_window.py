@@ -48,6 +48,29 @@ def fmt_dur(sec: float) -> str:
     return f"{total // 60}:{total % 60:02d}"
 
 
+# video.py의 _ACTIVE(실행 중인 ffmpeg 프로세스) 관례를 그대로 따른다: 열려 있는
+# VideoWindow를 전부 추적해, 앱 종료 시 destroy_all()로 한꺼번에 닫을 수 있게 한다
+# (리뷰 지적: 그렇지 않으면 webview.start()가 이 창들이 닫힐 때까지 반환하지 않아
+# 프로세스가 Quit 이후에도 살아남고, 종료 후에도 열린 창에서 "압축" 버튼을 누르면
+# 새 인코딩이 시작될 수 있다).
+_ACTIVE: set["VideoWindow"] = set()
+_ACTIVE_LOCK = threading.Lock()
+
+
+def destroy_all() -> None:
+    """앱 종료 시 호출 — 열려 있는 모든 확인/진행/알림 창을 닫는다.
+    각 창의 close()가 destroy()를 거쳐 closed 이벤트를 발생시키므로, 진행 중이던
+    _work 스레드의 cancelled(및 accepted) Event도 함께 set된다."""
+    with _ACTIVE_LOCK:
+        wins = list(_ACTIVE)
+        _ACTIVE.clear()
+    for w in wins:
+        try:
+            w.close()
+        except Exception:
+            pass
+
+
 class _Api:
     def __init__(self, accepted: threading.Event, cancelled: threading.Event):
         self.window = None
@@ -171,7 +194,26 @@ class VideoWindow:
             width=WIN_W, height=WIN_H, resizable=False,
         )
         self._api.window = self._win
+        # 타이틀바 X로 닫는 것도 취소다(리뷰 지적): pywebview는 이 경우 accept()도
+        # cancel()도 호출하지 않고 곧장 이 이벤트만 쏜다. 배선하지 않으면 사용자가
+        # 인코딩 도중 창을 닫아도 should_cancel=w.cancelled.is_set이 절대 True가 되지
+        # 않아 ffmpeg가 끝까지 돌고, 창을 닫은 지 몇 분 뒤에 클립보드가 조용히 바뀐다.
+        self._win.events.closed += self._on_closed
+        with _ACTIVE_LOCK:
+            _ACTIVE.add(self)
         return self._win
+
+    def _on_closed(self):
+        """cancel()의 close()가 부르는 window.destroy()도 이 이벤트를 다시 쏘지만,
+        threading.Event.set()은 이미 set된 상태에 다시 set해도 안전하므로(멱등)
+        문제 없다. accepted도 같이 set하는 이유: _work 스레드가
+        accepted.wait(timeout=300)에서 최대 5분까지 잠들어 있을 수 있는데, 여기서
+        같이 깨워야 곧바로 cancelled.is_set()을 보고 리턴한다(그렇지 않으면 창은
+        닫혔는데 스레드는 최대 5분간 아무것도 하지 않는 것처럼 보인다)."""
+        self.cancelled.set()
+        self.accepted.set()
+        with _ACTIVE_LOCK:
+            _ACTIVE.discard(self)
 
     def set_progress(self, text: str, pct: int):
         if self._win is None:

@@ -136,6 +136,7 @@ def main():
     listener = HotkeyListener(on_hotkey=picker.toggle)
 
     from . import video as _video
+    from . import video_window
 
     def _on_quit_extra():
         """종료 시 정리. 튜플 `(a(), b(), c())`은 왼쪽에서 오른쪽으로 엄격히 평가되므로
@@ -147,7 +148,11 @@ def main():
         보장하지 못한다. 각 단계를 개별적으로 감싸 하나가 실패해도 나머지는 반드시
         실행되게 한다."""
         steps = [listener.stop, asset_server.stop, picker.destroy,
-                 _video.terminate_all]  # 인코딩 중이면 ffmpeg를 죽인다
+                 video_window.destroy_all,  # 열린 확인/진행 창부터 닫는다 — destroy()가
+                                             # closed 이벤트를 통해 cancelled(+accepted)를
+                                             # set해, 그 창에 매인 _work 스레드가 새 인코딩을
+                                             # 시작하지 않고 곧바로 멈추게 한다(리뷰 지적)
+                 _video.terminate_all]  # 그 다음 이미 돌고 있던 ffmpeg를 죽인다
         if upd:
             steps.append(upd.stop)
         for step in steps:
@@ -223,7 +228,15 @@ def main():
         w.show()
 
         def _work():
-            if not w.accepted.wait(timeout=300):    # 5분 내 응답 없으면 포기
+            responded = w.accepted.wait(timeout=300)  # 5분 내 응답 없으면 포기
+            # cancelled를 응답 여부보다 먼저, 그리고 다른 어떤 작업(다운로드도 인코딩도)
+            # 보다 먼저 확인한다(리뷰 지적). 타이틀바 X로 창을 닫으면 video_window.py의
+            # closed 핸들러가 cancelled와 accepted를 함께 set하므로, 이 wait는 최대
+            # 300초까지 블록되지 않고 즉시 깨어난다 — 여기서 곧바로 리턴해야 "창을 닫은
+            # 뒤에도 ffmpeg가 끝까지 돌고 클립보드가 조용히 바뀌는" 문제가 사라진다.
+            if w.cancelled.is_set():
+                return
+            if not responded:
                 return
             nonlocal ff, meta, plan
             if not ff:
@@ -287,7 +300,12 @@ def main():
                         return
                     plan = retried
                 else:
-                    w.finish(tr("video_fail_encode"))
+                    # 두 번의 인코딩 모두 성공했지만(ok=True) 결과물이 여전히 한도를
+                    # 넘는다 — 인코딩이 실패한 게 아니라 이 클립이 한도 안에 들어가지
+                    # 않는 것뿐이므로 video_fail_encode("인코딩 실패")가 아니라
+                    # video_fail_toobig을 써야 한다(리뷰 지적: 바로 위 retried is None
+                    # 분기는 이미 video_fail_toobig을 쓰고 있었다).
+                    w.finish(tr("video_fail_toobig", limit=fmt_size(config.LIMIT_BYTES)))
                     return
 
             if _cb.set_clipboard_file(out):
