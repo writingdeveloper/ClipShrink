@@ -48,6 +48,25 @@ Obtén el `NotroSetup.exe` más reciente desde la página de [**Releases**](../.
 
 > ⚠️ El EXE **no está firmado**, por lo que Windows SmartScreen o algunos antivirus pueden advertir o marcarlo como falso positivo. Haz clic en *«Más información → Ejecutar de todas formas»* en SmartScreen, o ejecútalo desde el código fuente (abajo).
 
+## Primer arranque: ¿dónde está?
+
+Notro **no tiene ventana principal**. Tras instalarlo se inicia en silencio y reside en la
+**bandeja del sistema** (abajo a la derecha, junto al reloj).
+
+> **Windows 11 oculta los iconos nuevos de la bandeja de forma predeterminada.** Si no ves
+> Notro, haz clic en la flecha **`^`** junto al reloj y **arrastra el icono de Notro a la
+> barra de tareas** para mantenerlo visible.
+
+A partir de ahí:
+
+- Pulsa <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> en cualquier lugar para abrir el selector.
+- Copia una imagen demasiado grande para Discord: Notro la comprime automáticamente; solo
+  tienes que pegar con <kbd>Ctrl</kbd>+<kbd>V</kbd>.
+- **Haz clic derecho en el icono de la bandeja** para todos los ajustes (atajo, límite de
+  subida, idioma…).
+
+En el primer arranque el selector se abre una vez por sí solo, para que veas de inmediato qué hace.
+
 ## Ejecutar desde el código fuente (desarrollo)
 
 ```sh

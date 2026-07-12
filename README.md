@@ -74,6 +74,24 @@ Menu / Desktop shortcuts. Uninstall any time from **Settings → Apps** or the S
 > flag it as a false positive. Click *"More info → Run anyway"* on SmartScreen, or just
 > run it from source (below).
 
+## First run — where is it?
+
+Notro has **no main window**. After installing it starts silently and lives in the
+**system tray** (bottom-right, next to the clock).
+
+> **Windows 11 hides new tray icons by default.** If you don't see Notro, click the
+> **`^`** arrow next to the clock — then **drag the Notro icon onto the taskbar** to
+> keep it visible.
+
+From there:
+
+- Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> anywhere to open the picker.
+- Copy an image that's too big for Discord — Notro compresses it automatically, then
+  just paste with <kbd>Ctrl</kbd>+<kbd>V</kbd>.
+- **Right-click the tray icon** for every setting (hotkey, upload limit, language, …).
+
+On the very first launch the picker opens once by itself, so you can see what it does.
+
 ## Run from source (development)
 
 ```sh

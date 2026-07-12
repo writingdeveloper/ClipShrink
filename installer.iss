@@ -25,6 +25,17 @@ CloseApplicationsFilter=Notro.exe
 RestartApplications=no
 WizardStyle=modern
 
+[Messages]
+; The first-time wizard's finish page tells the user where Notro lives and how to use it:
+; Notro is a windowless tray app and Windows 11 hides new tray icons by default, so
+; without this a fresh install can feel like nothing happened. Silent auto-updates
+; (/VERYSILENT) never show this page, so existing users are not interrupted by it.
+; Deliberately ASCII-only: an .iss without a UTF-8 BOM is read with the system ANSI
+; codepage, so non-ASCII text here could render as mojibake on the finish page.
+FinishedHeadingLabel=Notro is ready
+FinishedLabel=Notro has no window - it runs in the system tray, next to the clock.%n%n- Press Ctrl+Shift+E anywhere to open the emoji / sticker / GIF picker.%n- Copy an image too big for Discord and Notro compresses it automatically - just paste.%n- Right-click the tray icon for settings.%n%nWindows 11 hides new tray icons by default: click the ^ arrow near the clock, then drag the Notro icon onto the taskbar to keep it visible.
+FinishedLabelNoIcons=Notro has no window - it runs in the system tray, next to the clock.%n%n- Press Ctrl+Shift+E anywhere to open the emoji / sticker / GIF picker.%n- Copy an image too big for Discord and Notro compresses it automatically - just paste.%n- Right-click the tray icon for settings.%n%nWindows 11 hides new tray icons by default: click the ^ arrow near the clock, then drag the Notro icon onto the taskbar to keep it visible.
+
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"
 Name: "startupicon"; Description: "Run Notro at Windows startup"; GroupDescription: "Startup:"; Flags: unchecked

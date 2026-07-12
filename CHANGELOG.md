@@ -3,6 +3,29 @@
 All notable changes to this project are documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.5.6] - 2026-07-11
+
+### Added
+- **First-run onboarding.** Notro is a windowless tray app, and Windows 11 hides new
+  tray icons by default — so a fresh install could feel like "nothing happened."
+  - The **installer's finish page** now says where Notro lives, how to open the picker
+    (Ctrl+Shift+E), and how to unhide/pin the tray icon on Windows 11. Silent
+    auto-updates skip this page, so existing users are never interrupted by it.
+  - **The picker opens once on the very first launch**, so the app proves it is running
+    and shows what it does. This is also the only signal for users who have Windows
+    notifications turned off.
+  - The first-run notification now says **where the tray icon is** (including the `^`
+    overflow arrow) and **which hotkey opens the picker**, instead of only mentioning
+    auto-start. Builds without the picker (no WebView2) keep a tray-location-only
+    message.
+- **READMEs in Japanese, Chinese and Spanish.** The app has shipped five UI languages
+  since v1.2 but only had English/Korean READMEs. Each README now also carries a
+  **"First run — where is it?"** section, and all five share one language switcher.
+
+### Changed
+- The GitHub repository description and topics now reflect the emoji/sticker/GIF picker,
+  not just clipboard compression.
+
 ## [2.5.5] - 2026-07-11
 
 ### Fixed

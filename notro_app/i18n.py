@@ -30,7 +30,7 @@ STRINGS = {
         "notify_clipboard_fail": "Clipboard update failed: another app is using the clipboard. Please copy again in a moment.",
         "notify_file_deleted": "That file has already been deleted.",
         "notify_startup_fail": "Failed to change the startup setting.",
-        "notify_first_run": "Running in the tray. To launch at startup, enable it from the menu → 'Run at Windows startup'.",
+        "notify_first_run": "Notro runs in the system tray, next to the clock. If you don't see the icon, click the ^ arrow and drag Notro onto the taskbar.",
     },
     "ko": {
         "tooltip": "Notro v{ver} — 디스코드 업로드 한도 자동 압축",
@@ -49,7 +49,7 @@ STRINGS = {
         "notify_clipboard_fail": "클립보드 교체 실패: 다른 프로그램이 클립보드를 사용 중이에요. 잠시 후 다시 복사해 주세요.",
         "notify_file_deleted": "파일이 이미 삭제되었어요.",
         "notify_startup_fail": "시작 프로그램 설정을 바꾸지 못했어요.",
-        "notify_first_run": "트레이에서 실행 중이에요. 부팅 시 자동 실행하려면 메뉴 → 'Windows 시작 시 자동 실행'을 켜세요.",
+        "notify_first_run": "Notro는 트레이(시계 옆)에서 실행 중이에요. 아이콘이 안 보이면 ^ 를 눌러 Notro를 작업 표시줄로 끌어다 놓으세요.",
     },
     "ja": {
         "tooltip": "Notro v{ver} — Discordのアップロード上限に自動圧縮",
@@ -68,7 +68,7 @@ STRINGS = {
         "notify_clipboard_fail": "クリップボードの更新に失敗: 他のアプリが使用中です。少し待ってからもう一度コピーしてください。",
         "notify_file_deleted": "ファイルはすでに削除されています。",
         "notify_startup_fail": "スタートアップ設定の変更に失敗しました。",
-        "notify_first_run": "トレイで実行中です。起動時に自動実行するには、メニュー →「Windows起動時に実行」をオンにしてください。",
+        "notify_first_run": "Notro はシステムトレイ（時計の横）で動作中です。アイコンが見えない場合は ^ をクリックし、Notro をタスクバーにドラッグしてください。",
     },
     "zh": {
         "tooltip": "Notro v{ver} — 自动压缩图片以符合 Discord 上传限制",
@@ -87,7 +87,7 @@ STRINGS = {
         "notify_clipboard_fail": "剪贴板更新失败: 其他程序正在占用剪贴板。请稍后重新复制。",
         "notify_file_deleted": "该文件已被删除。",
         "notify_startup_fail": "更改开机启动设置失败。",
-        "notify_first_run": "正在托盘运行。如需开机自动启动，请在菜单 →「开机时自动运行」中开启。",
+        "notify_first_run": "Notro 正在系统托盘（时钟旁）运行。如果看不到图标，请点击 ^ 箭头并把 Notro 拖到任务栏上。",
     },
     "es": {
         "tooltip": "Notro v{ver} — comprime imágenes para el límite de subida de Discord",
@@ -106,7 +106,7 @@ STRINGS = {
         "notify_clipboard_fail": "Error al actualizar el portapapeles: otra aplicación lo está usando. Copia de nuevo en un momento.",
         "notify_file_deleted": "Ese archivo ya se ha eliminado.",
         "notify_startup_fail": "No se pudo cambiar la configuración de inicio.",
-        "notify_first_run": "Ejecutándose en la bandeja. Para iniciar con el sistema, actívalo en el menú → 'Ejecutar al iniciar Windows'.",
+        "notify_first_run": "Notro se ejecuta en la bandeja del sistema, junto al reloj. Si no ves el icono, haz clic en la flecha ^ y arrastra Notro a la barra de tareas.",
     },
 }
 
@@ -402,6 +402,21 @@ del _V24_STRINGS
 for _lang, _s in {"en": "Settings", "ko": "설정", "ja": "設定",
                   "zh": "设置", "es": "Ajustes"}.items():
     STRINGS[_lang]["picker_settings"] = _s
+
+
+# ---------- 첫 실행 온보딩 (v2.5.6) ----------
+# 피커가 있는 빌드에서는 트레이 위치와 함께 피커 단축키까지 알린다.
+# (notify_first_run은 피커가 없는 v1 모드용 — 트레이 위치만 안내한다.)
+_FIRSTRUN_PICKER = {
+    "en": "Notro is in the system tray, next to the clock (click ^ if you don't see it). Press {combo} anywhere to open the picker.",
+    "ko": "Notro는 트레이(시계 옆)에 있어요 — 안 보이면 ^ 를 눌러보세요. 어디서든 {combo}로 피커를 열 수 있어요.",
+    "ja": "Notro はシステムトレイ（時計の横）にあります — 見えない場合は ^ をクリック。どこでも {combo} でピッカーを開けます。",
+    "zh": "Notro 在系统托盘（时钟旁）— 看不到请点击 ^。在任意位置按 {combo} 即可打开选择器。",
+    "es": "Notro está en la bandeja del sistema, junto al reloj (haz clic en ^ si no lo ves). Pulsa {combo} en cualquier lugar para abrir el selector.",
+}
+for _lang, _s in _FIRSTRUN_PICKER.items():
+    STRINGS[_lang]["notify_first_run_picker"] = _s
+del _FIRSTRUN_PICKER
 
 current_lang = "en"  # 실행 시 set_language()로 설정됨
 
