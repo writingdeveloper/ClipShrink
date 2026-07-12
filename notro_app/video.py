@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import threading
 from dataclasses import dataclass
 
 
@@ -151,6 +152,22 @@ def build_args(ffmpeg: str, src: str, plan: EncodePlan, dest: str) -> list[str]:
 
 CREATE_NO_WINDOW = 0x08000000   # 콘솔 창이 뜨지 않게
 
+_ACTIVE = set()            # 실행 중인 ffmpeg 프로세스
+_ACTIVE_LOCK = threading.Lock()
+
+
+def terminate_all() -> None:
+    """앱 종료 시 호출 — 인코딩 중이던 ffmpeg가 고아 프로세스로 남지 않게 한다."""
+    with _ACTIVE_LOCK:
+        procs = list(_ACTIVE)
+        _ACTIVE.clear()
+    for p in procs:
+        try:
+            if p.poll() is None:
+                p.terminate()
+        except Exception:
+            pass
+
 
 def probe(ffmpeg: str, path: str) -> VideoMeta | None:
     """`ffmpeg -i`로 메타데이터를 읽는다. 출력 파일이 없어 종료 코드는 항상 1이지만,
@@ -178,6 +195,8 @@ def encode(ffmpeg: str, src: str, plan: EncodePlan, dest: str,
         )
     except OSError:
         return False
+    with _ACTIVE_LOCK:
+        _ACTIVE.add(proc)
     try:
         for line in proc.stderr:
             if should_cancel and should_cancel():
@@ -190,3 +209,5 @@ def encode(ffmpeg: str, src: str, plan: EncodePlan, dest: str,
     finally:
         if proc.poll() is None:
             proc.terminate()
+        with _ACTIVE_LOCK:
+            _ACTIVE.discard(proc)

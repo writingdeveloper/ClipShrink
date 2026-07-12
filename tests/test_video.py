@@ -171,3 +171,26 @@ def test_probe_returns_none_when_ffmpeg_missing(monkeypatch):
 
     monkeypatch.setattr(video_mod.subprocess, "run", boom)
     assert video_mod.probe("ffmpeg.exe", "clip.mp4") is None
+
+
+# --- terminate_all (앱 종료 시 고아 ffmpeg 프로세스 방지) --------------------
+
+def test_terminate_all_kills_tracked_processes():
+    class FakeProc:
+        def __init__(self):
+            self.killed = False
+
+        def poll(self):
+            return None            # 아직 살아 있다
+
+        def terminate(self):
+            self.killed = True
+
+    p = FakeProc()
+    video_mod._ACTIVE.add(p)
+    try:
+        video_mod.terminate_all()
+        assert p.killed is True
+        assert p not in video_mod._ACTIVE
+    finally:
+        video_mod._ACTIVE.discard(p)
