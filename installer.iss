@@ -33,12 +33,14 @@ RestartApplications=no
 WizardStyle=modern
 
 [Languages]
-; 앱이 지원하는 5개 언어와 동일하게 맞춘다. Korean/ChineseSimplified는 Inno 6.3부터
-; 공식 배포에 포함되어 있어 별도 언어 파일을 동봉할 필요가 없다.
+; 앱이 지원하는 5개 언어와 동일하게 맞춘다. Korean/Japanese/Spanish는 Inno Setup 공식
+; 배포에 들어 있다. ChineseSimplified만 아직 공식 릴리스에 없어(개발 브랜치에만 있다)
+; Inno 공식 소스에서 가져와 저장소에 동봉했다 — UTF-8 BOM을 붙여 두었으며, BOM이 없으면
+; Inno이 ANSI로 읽어 중국어가 전부 깨진다.
 Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "ko"; MessagesFile: "compiler:Languages\Korean.isl"
 Name: "ja"; MessagesFile: "compiler:Languages\Japanese.isl"
-Name: "zh"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "zh"; MessagesFile: "installer\languages\ChineseSimplified.isl"
 Name: "es"; MessagesFile: "compiler:Languages\Spanish.isl"
 
 [Messages]
