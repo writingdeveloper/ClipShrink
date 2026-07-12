@@ -25,6 +25,7 @@ _DUR_RE = re.compile(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)")
 _VIDEO_RE = re.compile(r"Video:[^\n]*?\b(\d{2,5})x(\d{2,5})\b")
 _FPS_RE = re.compile(r"([\d.]+)\s*fps")
 _AUDIO_RE = re.compile(r"Stream #\d+:\d+[^\n]*: Audio:")
+_TIME_RE = re.compile(r"time=(\d+):(\d+):(\d+(?:\.\d+)?)")
 
 
 def parse_ffmpeg_info(stderr: str) -> VideoMeta | None:
@@ -114,3 +115,33 @@ def plan_encode(meta: VideoMeta, limit_bytes: int) -> EncodePlan | None:
     # 넘겼으니 "못 줄임"이 아니라 원본 해상도 그대로 인코딩한다(업스케일이 아니므로
     # warn=False). fps 판단 기준은 정의된 rung이 없으므로 사다리 최하한 기준을 쓴다.
     return _plan(meta.height, MIN_VIDEO_KBPS)
+
+
+def parse_progress(line: str) -> float | None:
+    """ffmpeg 진행 로그의 `time=00:00:12.34` → 12.34초. 없으면 None."""
+    m = _TIME_RE.search(line)
+    if not m:
+        return None
+    return int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3))
+
+
+def build_args(ffmpeg: str, src: str, plan: EncodePlan, dest: str) -> list[str]:
+    """ffmpeg 인자 조립 (순수 함수 — 테스트 가능).
+
+    출력은 항상 mp4(H.264+AAC): Discord 인라인 재생·미리보기 호환이 가장 좋다.
+    scale=-2:{h}로 가로를 짝수로 맞추고, +faststart로 미리보기를 살린다.
+    """
+    v = plan.video_kbps
+    args = [
+        ffmpeg, "-hide_banner", "-y", "-i", src,
+        "-c:v", "libx264", "-preset", "veryfast",
+        "-b:v", f"{v}k", "-maxrate", f"{int(v * 1.2)}k", "-bufsize", f"{v * 2}k",
+        "-vf", f"scale=-2:{plan.height}",
+        "-r", str(plan.fps),
+    ]
+    if plan.audio_kbps:
+        args += ["-c:a", "aac", "-b:a", f"{plan.audio_kbps}k"]
+    else:
+        args += ["-an"]
+    args += ["-movflags", "+faststart", dest]
+    return args

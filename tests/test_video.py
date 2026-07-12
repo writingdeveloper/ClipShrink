@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from notro_app.video import VideoMeta, parse_ffmpeg_info, EncodePlan, plan_encode
+from notro_app.video import VideoMeta, parse_ffmpeg_info, EncodePlan, plan_encode, build_args, parse_progress
 
 SAMPLE = """ffmpeg version 7.1 Copyright (c) 2000-2024
   Duration: 00:01:12.34, start: 0.000000, bitrate: 5842 kb/s
@@ -117,3 +117,37 @@ def test_boundary_at_exactly_300_kbps_still_plans_360p():
     assert p is not None
     assert p.height == 360
     assert p.video_kbps == 300
+
+
+# --- parse_progress와 build_args 테스트 -----------------------------------------------
+
+def test_parse_progress_reads_time():
+    line = "frame=  360 fps= 30 q=28.0 size=    2048KiB time=00:00:12.34 bitrate=1360.0kbits/s"
+    assert parse_progress(line) == 12.34
+
+
+def test_parse_progress_ignores_other_lines():
+    assert parse_progress("Stream mapping:") is None
+
+
+def test_build_args_uses_plan_and_outputs_mp4():
+    plan = EncodePlan(height=720, fps=30, video_kbps=1200, audio_kbps=96, warn=False)
+    args = build_args("ffmpeg.exe", "in.mkv", plan, "out.mp4")
+    joined = " ".join(args)
+    assert args[0] == "ffmpeg.exe"
+    assert "-c:v libx264" in joined
+    assert "-b:v 1200k" in joined
+    assert "-maxrate 1440k" in joined          # 1200 * 1.2
+    assert "-bufsize 2400k" in joined          # 1200 * 2
+    assert "scale=-2:720" in joined
+    assert "-r 30" in joined
+    assert "-b:a 96k" in joined
+    assert "+faststart" in joined
+    assert args[-1] == "out.mp4"
+
+
+def test_build_args_drops_audio_when_silent():
+    plan = EncodePlan(height=480, fps=30, video_kbps=600, audio_kbps=0, warn=True)
+    args = build_args("ffmpeg.exe", "in.mp4", plan, "out.mp4")
+    assert "-an" in args
+    assert "-c:a" not in args
