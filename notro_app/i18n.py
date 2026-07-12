@@ -418,6 +418,67 @@ for _lang, _s in _FIRSTRUN_PICKER.items():
     STRINGS[_lang]["notify_first_run_picker"] = _s
 del _FIRSTRUN_PICKER
 
+
+# ---------- 첫 실행 안내 창 (v2.5.7) ----------
+# 창이 없는 트레이 앱이라 "어디에 있는지"를 사용자가 직접 읽고 닫는 창으로 알린다.
+# (토스트는 알림을 끈 사용자에게 도달하지 못하고, 시간 기반 자동 팝업은 설치 마법사
+# 완료 화면과 겹친다.) 트레이 툴팁에도 피커 단축키를 노출한다.
+_WELCOME_STRINGS = {
+    "en": {
+        "welcome_title": "Notro is running",
+        "welcome_tray": "Notro has no window — it lives in the system tray, next to the clock. Look for this icon:",
+        "welcome_pin": "Windows 11 hides new tray icons. Click the ^ arrow next to the clock, then drag the Notro icon onto the taskbar to keep it visible.",
+        "welcome_hotkey": "opens the emoji / sticker / GIF picker, from anywhere",
+        "welcome_compress": "Copy an image too big for Discord and Notro compresses it automatically — just paste with Ctrl+V.",
+        "welcome_menu": "Right-click the tray icon for every setting: hotkey, upload limit, language.",
+        "welcome_ok": "Got it",
+        "tooltip_picker": "Notro v{ver} — {combo}: picker · auto-compresses clipboard images",
+    },
+    "ko": {
+        "welcome_title": "Notro가 실행 중이에요",
+        "welcome_tray": "Notro는 창이 없어요 — 트레이(작업 표시줄 오른쪽, 시계 옆)에 상주합니다. 이 아이콘을 찾으세요:",
+        "welcome_pin": "Windows 11은 새 트레이 아이콘을 숨깁니다. 시계 옆 ^ 를 누른 뒤, Notro 아이콘을 작업 표시줄로 끌어다 놓아 고정하세요.",
+        "welcome_hotkey": "어디서든 눌러 이모지·스티커·GIF 피커를 엽니다",
+        "welcome_compress": "디스코드에 올리기엔 큰 이미지를 복사하면 자동으로 압축돼요 — 그대로 Ctrl+V 하세요.",
+        "welcome_menu": "트레이 아이콘을 우클릭하면 모든 설정이 있어요: 단축키, 업로드 한도, 언어.",
+        "welcome_ok": "확인",
+        "tooltip_picker": "Notro v{ver} — {combo}: 피커 · 클립보드 이미지 자동 압축",
+    },
+    "ja": {
+        "welcome_title": "Notro が動作中です",
+        "welcome_tray": "Notro にはウィンドウがありません — システムトレイ（時計の横）に常駐します。このアイコンを探してください:",
+        "welcome_pin": "Windows 11 は新しいトレイアイコンを隠します。時計の横の ^ をクリックし、Notro のアイコンをタスクバーにドラッグして表示させてください。",
+        "welcome_hotkey": "どこでも押すと絵文字・スタンプ・GIF ピッカーが開きます",
+        "welcome_compress": "Discord には大きすぎる画像をコピーすると自動で圧縮されます — そのまま Ctrl+V で貼り付けてください。",
+        "welcome_menu": "トレイアイコンを右クリックすると、すべての設定（ホットキー、アップロード上限、言語）にアクセスできます。",
+        "welcome_ok": "OK",
+        "tooltip_picker": "Notro v{ver} — {combo}: ピッカー · クリップボード画像を自動圧縮",
+    },
+    "zh": {
+        "welcome_title": "Notro 正在运行",
+        "welcome_tray": "Notro 没有窗口 — 它常驻在系统托盘（时钟旁）。请寻找这个图标:",
+        "welcome_pin": "Windows 11 会隐藏新的托盘图标。请点击时钟旁的 ^ 箭头，然后把 Notro 图标拖到任务栏上以保持显示。",
+        "welcome_hotkey": "在任意位置按下即可打开表情·贴纸·GIF 选择器",
+        "welcome_compress": "复制一张对 Discord 来说过大的图片，Notro 会自动压缩 — 直接 Ctrl+V 粘贴即可。",
+        "welcome_menu": "右键点击托盘图标可访问所有设置: 热键、上传限制、语言。",
+        "welcome_ok": "知道了",
+        "tooltip_picker": "Notro v{ver} — {combo}: 选择器 · 自动压缩剪贴板图片",
+    },
+    "es": {
+        "welcome_title": "Notro está en marcha",
+        "welcome_tray": "Notro no tiene ventana — reside en la bandeja del sistema, junto al reloj. Busca este icono:",
+        "welcome_pin": "Windows 11 oculta los iconos nuevos de la bandeja. Haz clic en la flecha ^ junto al reloj y arrastra el icono de Notro a la barra de tareas para mantenerlo visible.",
+        "welcome_hotkey": "abre el selector de emojis, stickers y GIF desde cualquier lugar",
+        "welcome_compress": "Copia una imagen demasiado grande para Discord y Notro la comprime automáticamente — solo pega con Ctrl+V.",
+        "welcome_menu": "Haz clic derecho en el icono de la bandeja para todos los ajustes: atajo, límite de subida, idioma.",
+        "welcome_ok": "Entendido",
+        "tooltip_picker": "Notro v{ver} — {combo}: selector · comprime imágenes del portapapeles",
+    },
+}
+for _lang, _table in _WELCOME_STRINGS.items():
+    STRINGS[_lang].update(_table)
+del _WELCOME_STRINGS
+
 current_lang = "en"  # 실행 시 set_language()로 설정됨
 
 

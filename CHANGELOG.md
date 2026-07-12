@@ -3,6 +3,22 @@
 All notable changes to this project are documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.5.7] - 2026-07-11
+
+### Changed
+- **First-run guidance is now a window you read and dismiss, not a timed popup.** v2.5.6
+  opened the picker automatically 2.5 s after launch — but Inno runs `[Run]` *before*
+  showing its finish page, so the picker landed on top of the install instructions and
+  appeared at a moment the user had not chosen. The first launch now shows a small
+  **welcome window** that stays until you close it. It renders **the actual tray icon**
+  so you know what to look for, and explains: Notro has no window, how to unhide and pin
+  the tray icon on Windows 11, which hotkey opens the picker, and that oversized images
+  are compressed automatically. Closing it leaves Notro running in the tray (the hidden
+  picker window keeps the webview loop alive — verified).
+- **The tray tooltip now shows the picker hotkey** (e.g. `Notro v2.5.7 — Ctrl+Shift+E:
+  picker · auto-compresses clipboard images`), so hovering the icon reveals it. The
+  tooltip follows hotkey and language changes.
+
 ## [2.5.6] - 2026-07-11
 
 ### Added

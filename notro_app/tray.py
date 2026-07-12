@@ -140,6 +140,7 @@ def build_icon(monitor, picker=None, listener=None, on_quit_extra=None, updater=
         def on_select(icon, item):
             set_setting_str("lang", code)
             set_language(code)
+            icon.title = _tooltip()  # 언어를 바꾸면 툴팁도 새 언어로
             icon.update_menu()
 
         label = (lambda item: tr("lang_auto")) if code == "auto" else lang_names[code]
@@ -172,6 +173,7 @@ def build_icon(monitor, picker=None, listener=None, on_quit_extra=None, updater=
                 set_setting_str("hotkey", key)
                 if listener:
                     listener.set_combo(key)
+                icon.title = _tooltip()  # 툴팁의 단축키 표기도 따라간다
                 icon.update_menu()
 
             label = (lambda item: tr("hotkey_off")) if key == HOTKEY_OFF \
@@ -230,10 +232,18 @@ def build_icon(monitor, picker=None, listener=None, on_quit_extra=None, updater=
             pystray.Menu.SEPARATOR,
         ]
 
+    def _tooltip() -> str:
+        """트레이 툴팁. 피커가 있으면 단축키까지 노출해 hover만으로 발견되게 한다."""
+        c = get_setting_str("hotkey", "ctrl+shift+e")
+        if picker is not None and c != "off":
+            from .hotkey import label_for
+            return tr("tooltip_picker", ver=__version__, combo=label_for(c))
+        return tr("tooltip", ver=__version__)
+
     icon = pystray.Icon(
         APP_NAME,
         make_icon_image(True),
-        tr("tooltip", ver=__version__),
+        _tooltip(),
         menu=pystray.Menu(
             *picker_items,
             pystray.MenuItem(

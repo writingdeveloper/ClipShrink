@@ -65,7 +65,8 @@ A partir de ahí:
 - **Haz clic derecho en el icono de la bandeja** para todos los ajustes (atajo, límite de
   subida, idioma…).
 
-En el primer arranque el selector se abre una vez por sí solo, para que veas de inmediato qué hace.
+En el primer arranque aparece una **ventana de bienvenida** que explica todo esto y muestra
+una imagen del icono de la bandeja que debes buscar. Al cerrarla, Notro sigue en la bandeja.
 
 ## Ejecutar desde el código fuente (desarrollo)
 

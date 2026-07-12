@@ -154,17 +154,17 @@ def main():
         listener.start(combo)
     if first_run:
         # 창이 없는 트레이 앱이라 첫 실행에는 앱이 떴는지조차 모르기 쉽다 — 특히
-        # Windows 11은 새 트레이 아이콘을 기본으로 숨긴다. 그래서 (1) 트레이 위치와
-        # 피커 단축키를 함께 알리고, (2) 피커를 1회 띄워 앱이 살아있고 무엇을 하는지
-        # 직접 보여준다. (2)는 알림을 끈 사용자에게 유일한 신호이기도 하다. 피커는
-        # 다른 창을 클릭하면(blur) 스스로 닫힌다.
-        if combo != "off":
-            from .hotkey import label_for
-            first_msg = tr("notify_first_run_picker", combo=label_for(combo))
-        else:
-            first_msg = tr("notify_first_run")
+        # Windows 11은 새 트레이 아이콘을 기본으로 숨긴다. 그래서 사용자가 직접 읽고
+        # 닫는 안내 창을 띄운다. (토스트는 알림을 끈 사용자에게 아예 도달하지 못하고,
+        # 시간 기반 자동 팝업은 설치 마법사의 완료 화면을 덮어버린다.) 안내 창에는
+        # 트레이에 뜨는 것과 같은 아이콘을 심어 무엇을 찾아야 하는지 보여준다.
+        from . import welcome
+        from .hotkey import label_for
+        combo_label = label_for(combo) if combo != "off" else None
+        welcome.create_window(combo_label)
+        first_msg = (tr("notify_first_run_picker", combo=combo_label)
+                     if combo_label else tr("notify_first_run"))
         threading.Timer(1.5, lambda: icon.notify(first_msg, APP_NAME)).start()
-        threading.Timer(2.5, picker.toggle).start()
 
     # QA 훅: 핫키와 동일한 코드 경로(toggle)를 합성 키 입력 없이 구동
     import os

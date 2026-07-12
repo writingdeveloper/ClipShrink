@@ -90,7 +90,8 @@ From there:
   just paste with <kbd>Ctrl</kbd>+<kbd>V</kbd>.
 - **Right-click the tray icon** for every setting (hotkey, upload limit, language, …).
 
-On the very first launch the picker opens once by itself, so you can see what it does.
+On the very first launch a short **welcome window** explains all of this — and shows a
+picture of the tray icon you're looking for. Close it and Notro keeps running in the tray.
 
 ## Run from source (development)
 
