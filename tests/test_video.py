@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from notro_app.video import VideoMeta, parse_ffmpeg_info
+from notro_app.video import VideoMeta, parse_ffmpeg_info, EncodePlan, plan_encode
 
 SAMPLE = """ffmpeg version 7.1 Copyright (c) 2000-2024
   Duration: 00:01:12.34, start: 0.000000, bitrate: 5842 kb/s
@@ -41,3 +41,50 @@ def test_skips_cover_art_stream_and_picks_real_video():
     # 표지 이미지(mjpeg, 320x240, attached pic)가 아니라 실제 영상(h264, 1920x1080)을 골라야 한다
     m = parse_ffmpeg_info(COVER_ART)
     assert (m.width, m.height, m.fps) == (1920, 1080, 59.94)
+
+
+# plan_encode 테스트
+MB = 1024 * 1024
+LIMIT = int(10 * MB * 0.95)   # config.LIMIT_BYTES와 동일 (SAFETY 0.95)
+
+
+def _meta(dur, w=1920, h=1080, fps=60.0, audio=True):
+    return VideoMeta(duration=dur, width=w, height=h, fps=fps, has_audio=audio)
+
+
+def test_short_clip_keeps_1080p():
+    p = plan_encode(_meta(20), LIMIT)          # 20초 → 비디오 여유 충분
+    assert p.height == 1080
+    assert p.video_kbps >= 2500
+
+
+def test_one_minute_clip_drops_to_720p30():
+    p = plan_encode(_meta(60), LIMIT)          # 60초 → 약 1230kbps
+    assert p.height == 720
+    assert p.fps == 30                         # 60fps를 감당할 여유(1000*1.5)가 없다
+    assert p.warn is False                     # 경고는 480p 이하로 떨어질 때만
+
+
+def test_long_clip_drops_to_480p():
+    p = plan_encode(_meta(120), LIMIT)         # 2분 → 약 568kbps
+    assert p.height == 480
+    assert p.warn is True
+
+
+def test_too_long_returns_none():
+    assert plan_encode(_meta(600), LIMIT) is None   # 10분 → 하한 미달
+
+
+def test_never_upscales_beyond_source():
+    p = plan_encode(_meta(20, w=640, h=360, fps=30.0), LIMIT)
+    assert p.height == 360                     # 원본이 360p면 그대로
+    assert p.warn is False                     # 축소가 아니므로 경고 없음
+
+
+def test_silent_video_has_no_audio_budget():
+    p = plan_encode(_meta(60, audio=False), LIMIT)
+    assert p.audio_kbps == 0
+
+
+def test_zero_duration_returns_none():
+    assert plan_encode(_meta(0), LIMIT) is None

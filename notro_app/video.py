@@ -58,3 +58,45 @@ def parse_ffmpeg_info(stderr: str) -> VideoMeta | None:
     fps = float(f.group(1)) if f else 30.0
 
     return VideoMeta(duration, width, height, fps, bool(_AUDIO_RE.search(stderr)))
+
+
+AUDIO_KBPS = 96          # AAC 고정
+MIN_VIDEO_KBPS = 300     # 이 아래로는 내려가지 않는다 (360p 하한)
+
+# 해상도 사다리: (높이, 30fps 기준 최소 비디오 kbps)
+_LADDER = ((1080, 2500), (720, 1000), (480, 500), (360, MIN_VIDEO_KBPS))
+
+
+@dataclass
+class EncodePlan:
+    height: int
+    fps: int
+    video_kbps: int
+    audio_kbps: int
+    warn: bool        # 원본보다 작아졌고 480p 이하 → 화질 저하 경고
+
+
+def plan_encode(meta: VideoMeta, limit_bytes: int) -> EncodePlan | None:
+    """목표 용량에 맞는 인코딩 계획. 하한(360p/300kbps) 밑이면 None = '못 줄임'.
+
+    60fps는 같은 체감 화질에 약 1.5배 비트레이트를 먹는다 — 여유가 없으면 30fps로 낮춘다.
+    원본보다 해상도를 키우지 않는다.
+    """
+    if meta.duration <= 0:
+        return None
+    audio = AUDIO_KBPS if meta.has_audio else 0
+    total_kbps = limit_bytes * 8 / meta.duration / 1000
+    video_kbps = int(total_kbps - audio)
+    if video_kbps < MIN_VIDEO_KBPS:
+        return None
+
+    for height, need in _LADDER:
+        if height > meta.height:      # 원본보다 키우지 않는다
+            continue
+        if video_kbps >= need:
+            fps = int(round(meta.fps))
+            if meta.fps > 30 and video_kbps < need * 1.5:
+                fps = 30              # 60fps를 감당할 여유가 없다
+            warn = height < meta.height and height <= 480
+            return EncodePlan(height, fps, video_kbps, audio, warn)
+    return None
