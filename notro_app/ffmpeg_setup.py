@@ -13,6 +13,7 @@ import json
 import os
 import shutil
 import urllib.request
+import zipfile
 
 from . import config
 
@@ -72,21 +73,19 @@ def _download(url: str, dest: str, on_progress=None) -> None:
 def download_ffmpeg(on_progress=None) -> str | None:
     """PyPI의 imageio-ffmpeg wheel을 받아 SHA256을 검증하고 ffmpeg.exe만 꺼낸다.
     실패하면 None (치명적이지 않다 — 압축 기능만 못 쓴다)."""
-    import zipfile
-
     try:
         with urllib.request.urlopen(PYPI_JSON, timeout=15) as r:
             data = json.load(r)
+        picked = _pick_wheel(data)
+        if not picked:
+            return None
+        url, sha = picked
     except Exception:
         return None
-    picked = _pick_wheel(data)
-    if not picked:
-        return None
-    url, sha = picked
 
-    os.makedirs(config.BIN_DIR, exist_ok=True)
     tmp = os.path.join(config.BIN_DIR, "_ffmpeg_wheel.zip")
     try:
+        os.makedirs(config.BIN_DIR, exist_ok=True)
         _download(url, tmp, on_progress)
         if _sha256(tmp).lower() != sha.lower():
             return None
