@@ -108,7 +108,12 @@ def plan_encode(meta: VideoMeta, limit_bytes: int) -> EncodePlan | None:
         fps = int(round(meta.fps))
         if meta.fps > 30 and video_kbps < need * 1.5:
             fps = 30              # 60fps를 감당할 여유가 없다
-        warn = height < meta.height and height <= 480
+        # warn은 "진짜 축소"에만 켜야 한다. height는 위에서 이미 짝수로 내렸으니
+        # 원본(meta.height)도 짝수로 내려 같은 기준으로 비교한다 — 그렇지 않으면
+        # 네이티브 폴백에서 홀수 높이를 1px 보정한 것만으로(예: 321 -> 320) 실제
+        # 축소가 아닌데도 320 < 321이 참이 되어 warn=True로 잘못 켜진다.
+        even_source_height = meta.height - meta.height % 2
+        warn = height < even_source_height and height <= 480
         return EncodePlan(height, fps, video_kbps, audio, warn)
 
     for height, need in _LADDER:

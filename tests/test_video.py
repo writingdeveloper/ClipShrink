@@ -120,6 +120,10 @@ def test_source_below_smallest_rung_with_odd_height_yields_even_plan_height():
     assert p is not None
     assert p.height % 2 == 0
     assert p.height == 320                       # 업스케일 금지 유지 → 320으로 내림
+    # 321 -> 320은 짝수 보정(1px)일 뿐 "진짜 축소"가 아니다. 원본(321)도 짝수로
+    # 내려서 비교해야 320 < 320(거짓)이 되어 warn=False가 나온다 — 그렇지 않으면
+    # (320 < 321) 홀수 보정만으로 스푸리어스하게 "화질 저하" 경고가 뜬다.
+    assert p.warn is False
 
 
 def test_boundary_at_exactly_300_kbps_still_plans_360p():
