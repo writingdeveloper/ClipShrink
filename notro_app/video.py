@@ -130,6 +130,25 @@ def plan_encode(meta: VideoMeta, limit_bytes: int) -> EncodePlan | None:
     return _plan(meta.height, MIN_VIDEO_KBPS)
 
 
+def retry_plan(plan: EncodePlan) -> EncodePlan | None:
+    """1-pass 오차로 결과물이 여전히 용량 한도를 넘을 때, 비트레이트를 20% 낮춰 한
+    번 더 인코딩할 계획을 만든다. 하한(MIN_VIDEO_KBPS)은 "이 밑으로는 절대 내려가지
+    않는다"는 이 앱의 화질 보장 그 자체이므로, 낮춘 비트레이트가 하한 밑으로
+    떨어지면 재시도 계획 대신 None을 돌려준다.
+
+    주의: EncodePlan.video_kbps는 선택된 rung에서 "쓸 수 있는 전체 예산"이지
+    rung의 최소치가 아니다. 그래서 plan_encode가 300~374kbps 사이(>= MIN_VIDEO_KBPS를
+    통과해 360p로 계획됨)로 계획한 클립은, 아무 클램프 없이 ×0.8만 적용하면
+    244~299kbps로 떨어져 하한을 조용히 어긴다. 호출자는 None을 "재시도해도 하한을
+    지키며 못 줄인다"로 해석해 정직하게 실패 처리해야 한다(하한을 어기며 억지로
+    인코딩하면 안 된다).
+    """
+    reduced = int(plan.video_kbps * 0.8)
+    if reduced < MIN_VIDEO_KBPS:
+        return None
+    return EncodePlan(plan.height, plan.fps, reduced, plan.audio_kbps, plan.warn)
+
+
 def parse_progress(line: str) -> float | None:
     """ffmpeg 진행 로그의 `time=00:00:12.34` → 12.34초. 없으면 None."""
     m = _TIME_RE.search(line)

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from notro_app.video import VideoMeta, parse_ffmpeg_info, EncodePlan, plan_encode, build_args, parse_progress
-from notro_app.video_window import fmt_dur, fmt_size
+from notro_app.video import (VideoMeta, parse_ffmpeg_info, EncodePlan, plan_encode,
+                             build_args, parse_progress, retry_plan, MIN_VIDEO_KBPS)
+from notro_app.video_window import fmt_dur, fmt_size, VideoWindow
 import notro_app.video as video_mod
 
 SAMPLE = """ffmpeg version 7.1 Copyright (c) 2000-2024
@@ -134,6 +135,39 @@ def test_boundary_at_exactly_300_kbps_still_plans_360p():
     assert p is not None
     assert p.height == 360
     assert p.video_kbps == 300
+
+
+# --- retry_plan (재시도 비트레이트 하한 클램프 — 리뷰 발견사항 #1) -------------
+
+def test_retry_plan_reduces_bitrate_by_20_percent():
+    plan = EncodePlan(height=720, fps=30, video_kbps=1000, audio_kbps=96, warn=False)
+    retried = retry_plan(plan)
+    assert retried is not None
+    assert retried.video_kbps == 800
+    assert (retried.height, retried.fps, retried.audio_kbps) == (720, 30, 96)
+
+
+def test_retry_plan_returns_none_when_it_would_break_the_300kbps_floor():
+    # EncodePlan.video_kbps는 rung의 예산 전체지, rung의 최소치가 아니다 — 305는
+    # ">= MIN_VIDEO_KBPS(300)" 검사를 통과해 360p 계획이 나오지만, 그대로 재시도하면
+    # 305 * 0.8 = 244 < 300으로 앱이 보장하는 화질 하한이 깨진다. None으로
+    # "재시도해도 하한을 지키며 못 줄인다"를 알려야 한다.
+    plan = EncodePlan(height=360, fps=30, video_kbps=305, audio_kbps=96, warn=False)
+    assert retry_plan(plan) is None
+
+
+def test_retry_plan_boundary_exactly_at_floor_is_allowed():
+    # 375 * 0.8 = 300.0 == MIN_VIDEO_KBPS — 하한과 "같음"은 미달이 아니다.
+    plan = EncodePlan(height=360, fps=30, video_kbps=375, audio_kbps=96, warn=False)
+    retried = retry_plan(plan)
+    assert retried is not None
+    assert retried.video_kbps == MIN_VIDEO_KBPS
+
+
+def test_retry_plan_one_kbps_under_boundary_is_rejected():
+    # 374 * 0.8 = 299.2 -> int(299.2) = 299 < 300
+    plan = EncodePlan(height=360, fps=30, video_kbps=374, audio_kbps=96, warn=False)
+    assert retry_plan(plan) is None
 
 
 # --- parse_progress와 build_args 테스트 -----------------------------------------------
@@ -321,3 +355,33 @@ def test_fmt_dur():
     assert fmt_dur(72.34) == "1:12"
     assert fmt_dur(5) == "0:05"
     assert fmt_dur(3661) == "61:01"
+
+
+# --- VideoWindow.info (할 일 없는 알림 전용 창 — 리뷰 발견사항 #2) -------------
+# _html()은 webview를 임포트하지 않는 순수 문자열 조립이라 실제 창 없이 테스트할 수 있다.
+
+def test_info_window_has_exactly_one_button_wired_to_a_real_close():
+    w = VideoWindow.info("title", "meta", "message", "Close")
+    html = w._html()
+    # 버튼이 정확히 하나뿐이어야 한다 — "닫기"로 보이면서 실제로는 다른 동작을
+    # 하는 두 번째 버튼(예전의 accept 전용 "ok")이 있으면 안 된다.
+    assert html.count("<button") == 1
+    assert 'id="ok"' in html
+    assert 'id="no"' not in html
+    # 유일한 버튼은 cancel()을 호출해야 한다 — cancel()만 실제로 창을 destroy()한다
+    # (accept()는 threading.Event만 set할 뿐 창을 닫지 않는다).
+    assert "pywebview.api.cancel()" in html
+    assert "pywebview.api.accept()" not in html
+    assert "Close" in html
+
+
+def test_normal_confirm_window_flow_is_unchanged():
+    # info 모드 추가가 기존 확인→진행→완료 흐름을 건드리지 않았는지 확인한다:
+    # accept 버튼(ok)과 cancel 버튼(no)이 둘 다 있고, ok는 accept()를 부른다.
+    w = VideoWindow("title", "meta", "estimate", None, "Compress")
+    html = w._html()
+    assert html.count("<button") == 2
+    assert 'id="ok"' in html and 'id="no"' in html
+    assert "pywebview.api.accept()" in html
+    assert "pywebview.api.cancel()" in html
+    assert "notroProgress" in html and "notroFinish" in html

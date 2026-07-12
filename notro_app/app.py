@@ -137,11 +137,28 @@ def main():
 
     from . import video as _video
 
+    def _on_quit_extra():
+        """종료 시 정리. 튜플 `(a(), b(), c())`은 왼쪽에서 오른쪽으로 엄격히 평가되므로
+        앞선 호출이 예외를 던지면 뒤따르는 정리 — 특히 인코딩 중인 ffmpeg를 죽이는
+        `_video.terminate_all()` — 는 아예 실행되지 않는다. "종료 시점에 뭔가 평소와
+        다른 상태"(=인코딩 도중)일 때 정확히 벌어지는 시나리오라 이 요구사항이 존재하는
+        이유 그 자체다(리뷰 지적). tray.py의 on_quit이 on_quit_extra() 호출 전체를
+        try/except로 감싸긴 하지만, 그건 "죽지 않는다"만 보장할 뿐 "뒤 단계가 실행된다"는
+        보장하지 못한다. 각 단계를 개별적으로 감싸 하나가 실패해도 나머지는 반드시
+        실행되게 한다."""
+        steps = [listener.stop, asset_server.stop, picker.destroy,
+                 _video.terminate_all]  # 인코딩 중이면 ffmpeg를 죽인다
+        if upd:
+            steps.append(upd.stop)
+        for step in steps:
+            try:
+                step()
+            except Exception:
+                pass
+
     icon = tray.build_icon(
         monitor, picker=picker, listener=listener, updater=upd,
-        on_quit_extra=lambda: (listener.stop(), asset_server.stop(), picker.destroy(),
-                               _video.terminate_all(),   # 인코딩 중이면 ffmpeg를 죽인다
-                               upd.stop() if upd else None),
+        on_quit_extra=_on_quit_extra,
     )
     listener.on_register_fail = lambda label: icon.notify(
         tr("notify_hotkey_fail", combo=label), APP_NAME)
@@ -154,6 +171,7 @@ def main():
         """한도 초과 비디오: 확인 창 → (필요시 ffmpeg 다운로드) → 인코딩 → 클립보드 교체.
         monitor 스레드를 막지 않도록 별도 스레드에서 돈다. 클립보드는 성공했을 때만 바꾼다."""
         import os as _os
+        import tempfile as _tempfile
 
         from . import ffmpeg_setup, video
         from . import clipboard_win as _cb
@@ -175,11 +193,16 @@ def main():
 
         if meta and not plan:                       # 하한 미달 — 정직하게 실패
             limit = fmt_size(config.LIMIT_BYTES)
-            w = VideoWindow(tr("video_confirm_title"),
-                            tr("video_meta", name=name, size=fmt_size(src_size),
-                               dur=fmt_dur(meta.duration), res=f"{meta.height}p"),
-                            tr("video_fail_toobig", limit=limit), None,
-                            tr("video_btn_close"))
+            # info(): 진행시킬 작업이 없으므로 확인/진행 흐름이 아니라 메시지 +
+            # 실제로 창을 닫는 버튼 하나짜리 알림 전용 창을 띄운다(리뷰 지적: 예전에는
+            # 이 자리에서 일반 확인 창을 accept_label="닫기"로만 바꿔 재사용했는데,
+            # "닫기" 버튼이 accept()만 호출해 창을 빈 진행률 화면으로 바꿔놓을 뿐 닫지
+            # 않았다 — _work 스레드조차 시작되지 않으니 그 뒤로 아무 일도 일어나지 않는다).
+            w = VideoWindow.info(tr("video_confirm_title"),
+                                 tr("video_meta", name=name, size=fmt_size(src_size),
+                                    dur=fmt_dur(meta.duration), res=f"{meta.height}p"),
+                                 tr("video_fail_toobig", limit=limit),
+                                 tr("video_btn_close"))
             w.show()
             return
 
@@ -211,13 +234,31 @@ def main():
                     w.finish(tr("video_fail_download"))
                     return
                 meta = video.probe(ff, path)
-                plan = video.plan_encode(meta, config.LIMIT_BYTES) if meta else None
+                if meta is None:
+                    # 다운로드는 됐지만 다시 읽어보니 손상됐거나 비디오가 아니다 —
+                    # "너무 크다"가 아니라 인코딩 실패로 보고해야 진짜 이유와 맞는다
+                    # (리뷰 지적: 다운로드 전 경로는 probe 실패 시 창조차 띄우지 않아
+                    # 이 둘을 구분하는데, 다운로드 후 경로는 둘 다 video_fail_toobig로
+                    # 뭉뚱그리고 있었다. 새 키를 만들지 않고 기존 "인코딩 실패" 키를
+                    # 재사용한다 — 다운로드된 파일을 다루지 못했다는 점에서 인코딩
+                    # 실패의 일종으로 보는 게 자연스럽고, i18n 5개 언어를 새로 늘리지
+                    # 않아도 된다).
+                    w.finish(tr("video_fail_encode"))
+                    return
+                plan = video.plan_encode(meta, config.LIMIT_BYTES)
                 if not plan:
                     w.finish(tr("video_fail_toobig", limit=fmt_size(config.LIMIT_BYTES)))
                     return
 
-            out = _os.path.join(config.TEMP_DIR,
-                                _os.path.splitext(name)[0] + "_notro.mp4")
+            # 임시 출력 경로는 호출마다 유일해야 한다: 파일명만으로 경로를 만들면
+            # 같은 이름의 오버사이즈 비디오 두 개(카메라가 찍은 VID_20240101.mp4처럼
+            # 흔한 경우)가 동시에 감지됐을 때 스레드 둘이 같은 경로에서 부딪혀, 한쪽의
+            # 취소 정리(os.remove)나 재인코딩 덮어쓰기가 다른 쪽이 이미 클립보드로
+            # 넘긴 파일을 지우거나 손상시킬 수 있다(리뷰 지적).
+            fd, out = _tempfile.mkstemp(
+                prefix=_os.path.splitext(name)[0] + "_notro_", suffix=".mp4",
+                dir=config.TEMP_DIR)
+            _os.close(fd)
             for attempt in range(2):                # 1-pass 오차 → 1회만 재시도
                 ok = video.encode(
                     ff, path, plan, out,
@@ -235,9 +276,16 @@ def main():
                 if _os.path.getsize(out) <= config.LIMIT_BYTES:
                     break
                 if attempt == 0:                    # 여전히 크다 — 비트레이트를 낮춰 한 번 더
-                    plan = video.EncodePlan(plan.height, plan.fps,
-                                            int(plan.video_kbps * 0.8),
-                                            plan.audio_kbps, plan.warn)
+                    retried = video.retry_plan(plan)
+                    if retried is None:
+                        # 재시도가 300kbps/360p 하한을 어기게 된다 — "절대 이 밑으로는
+                        # 내려가지 않는다"는 보장을 깨면서까지 억지로 밀어붙이지 않고,
+                        # 정직하게 "못 줄임"으로 끝낸다(리뷰 지적: 예전에는 클램프 없이
+                        # 그대로 ×0.8을 적용해, 305kbps처럼 360p 하한 검사(>=300)를
+                        # 겨우 통과한 계획이 재시도에서 244kbps까지 조용히 떨어졌다).
+                        w.finish(tr("video_fail_toobig", limit=fmt_size(config.LIMIT_BYTES)))
+                        return
+                    plan = retried
                 else:
                     w.finish(tr("video_fail_encode"))
                     return

@@ -70,7 +70,15 @@ class _Api:
 
 
 class VideoWindow:
-    """확인 → 진행 → 완료/실패를 한 창에서 전환한다."""
+    """확인 → 진행 → 완료/실패를 한 창에서 전환한다.
+
+    할 일이 아예 없는 경우(예: 예산이 360p/300kbps 하한에도 못 미쳐 압축 자체가
+    불가능한 경우)를 위한 별도 상태도 있다 — `VideoWindow.info(...)`로 만든다.
+    이 상태는 확인/취소 두 갈래도, 진행률 표시도 없이 메시지 하나 + 실제로 창을
+    닫는 버튼 하나만 보여준다(리뷰 발견사항: 예전에는 이 경우도 보통 확인 창을
+    재사용해 accept_label만 "닫기"로 바꿔 달았는데, 그 버튼은 accept()만 호출해
+    창을 빈 진행률 화면(0%)으로 바꿔놓을 뿐 실제로 닫지는 않았다 — 창을 진짜로
+    destroy()하는 cancel()은 "취소" 버튼에 연결돼 있었다)."""
 
     def __init__(self, headline: str, meta_line: str, estimate: str,
                  warn: str | None, accept_label: str):
@@ -82,11 +90,68 @@ class VideoWindow:
         self._estimate = estimate
         self._warn = warn
         self._accept_label = accept_label
+        self._info = False
         self._win = None
+
+    @classmethod
+    def info(cls, headline: str, meta_line: str, message: str,
+             close_label: str) -> "VideoWindow":
+        """진행시킬 작업이 없는 알림 전용 창. 단일 버튼(close_label)만 있고,
+        그 버튼은 실제로 창을 destroy()한다."""
+        w = cls(headline, meta_line, message, None, close_label)
+        w._info = True
+        return w
 
     def _html(self) -> str:
         e = _html.escape
         warn = f'<div class="warn">{e(self._warn)}</div>' if self._warn else ""
+        if self._info:
+            # 진행률 영역도, 두 번째 버튼도 없다 — 유일한 버튼은 cancel()을 호출해
+            # 실제로 창을 닫는다(accept()는 threading.Event만 set할 뿐 창을 닫지
+            # 않으므로 여기서는 쓰지 않는다).
+            body = (
+                '<div class="btns" id="btns">'
+                f'  <button class="primary" id="ok">{e(self._accept_label)}</button>'
+                "</div>"
+                "<script>"
+                'document.getElementById("ok").onclick = function () {'
+                "  window.pywebview.api.cancel();"
+                "};"
+                "</script>"
+            )
+        else:
+            body = (
+                '<div id="prog" class="hidden">'
+                '  <div class="bar"><i id="fill"></i></div>'
+                '  <div class="status" id="status"></div>'
+                "</div>"
+                '<div class="btns" id="btns">'
+                f'  <button class="primary" id="ok">{e(self._accept_label)}</button>'
+                f'  <button id="no">{e(tr("video_btn_cancel"))}</button>'
+                "</div>"
+                "<script>"
+                'document.getElementById("ok").onclick = function () {'
+                '  document.getElementById("btns").classList.add("hidden");'
+                '  document.getElementById("prog").classList.remove("hidden");'
+                "  window.pywebview.api.accept();"
+                "};"
+                'document.getElementById("no").onclick = function () {'
+                "  window.pywebview.api.cancel();"
+                "};"
+                "function notroProgress(text, pct) {"
+                '  document.getElementById("status").textContent = text;'
+                '  document.getElementById("fill").style.width = pct + "%";'
+                "}"
+                "function notroFinish(text) {"
+                '  document.getElementById("prog").classList.add("hidden");'
+                '  document.getElementById("btns").classList.remove("hidden");'
+                '  document.getElementById("ok").classList.add("hidden");'
+                '  document.getElementById("no").textContent = ' + f'"{e(tr("video_btn_close"))}";'
+                '  document.querySelector(".est").textContent = text;'
+                '  document.querySelector(".row").textContent = "";'
+                "}"
+                "</script>"
+            )
         return (
             '<!doctype html><html><head><meta charset="utf-8">'
             f"<title>{e(APP_NAME)}</title><style>{_CSS}</style></head><body>"
@@ -94,36 +159,8 @@ class VideoWindow:
             f'<div class="row">{e(self._meta_line)}</div>'
             f'<div class="est">{e(self._estimate)}</div>'
             f"{warn}"
-            '<div id="prog" class="hidden">'
-            '  <div class="bar"><i id="fill"></i></div>'
-            '  <div class="status" id="status"></div>'
-            "</div>"
-            '<div class="btns" id="btns">'
-            f'  <button class="primary" id="ok">{e(self._accept_label)}</button>'
-            f'  <button id="no">{e(tr("video_btn_cancel"))}</button>'
-            "</div>"
-            "<script>"
-            'document.getElementById("ok").onclick = function () {'
-            '  document.getElementById("btns").classList.add("hidden");'
-            '  document.getElementById("prog").classList.remove("hidden");'
-            "  window.pywebview.api.accept();"
-            "};"
-            'document.getElementById("no").onclick = function () {'
-            "  window.pywebview.api.cancel();"
-            "};"
-            "function notroProgress(text, pct) {"
-            '  document.getElementById("status").textContent = text;'
-            '  document.getElementById("fill").style.width = pct + "%";'
-            "}"
-            "function notroFinish(text) {"
-            '  document.getElementById("prog").classList.add("hidden");'
-            '  document.getElementById("btns").classList.remove("hidden");'
-            '  document.getElementById("ok").classList.add("hidden");'
-            '  document.getElementById("no").textContent = ' + f'"{e(tr("video_btn_close"))}";'
-            '  document.querySelector(".est").textContent = text;'
-            '  document.querySelector(".row").textContent = "";'
-            "}"
-            "</script></body></html>"
+            f"{body}"
+            "</body></html>"
         )
 
     def show(self):
