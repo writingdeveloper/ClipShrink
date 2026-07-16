@@ -22,6 +22,7 @@ class Monitor:
         self.enabled = True
         self.stop_flag = False
         self.last_seq = cb.get_sequence_number()
+        self._pending_seq = self.last_seq  # 변화 감지 후 안정화 대기용
         self.status_cb = None  # 트레이 알림 콜백
         self.history = []  # 처리 내역: {time, path, orig_mb, new_mb, pct}
         self.history_lock = threading.Lock()  # 감시 스레드 ↔ 트레이 메뉴 스레드 동시 접근 보호
@@ -38,6 +39,10 @@ class Monitor:
     def process_clipboard(self):
         if cb.clipboard_has_marker():
             return
+
+        # 지금 읽는 내용의 시퀀스. 압축하는 몇 초 사이에 사용자가 새로 복사하면
+        # 시퀀스가 달라지므로, 교체 직전 이 값으로 검사해 새 복사를 지우지 않는다.
+        guard_seq = cb.get_sequence_number()
 
         img = None
         orig_bytes = None
@@ -58,7 +63,7 @@ class Monitor:
             except Exception:
                 img = None
             if img is not None:
-                self._compress_and_replace(img, orig_bytes)
+                self._compress_and_replace(img, orig_bytes, guard_seq)
                 return
 
         # 2) 일반 비트맵 / 복사된 파일 처리
@@ -107,9 +112,10 @@ class Monitor:
             if orig_bytes <= config.LIMIT_BYTES:
                 return  # 한도 이하 → 그대로 둠
 
-        self._compress_and_replace(img, orig_bytes)
+        self._compress_and_replace(img, orig_bytes, guard_seq)
 
-    def _compress_and_replace(self, img: Image.Image, orig_bytes: int):
+    def _compress_and_replace(self, img: Image.Image, orig_bytes: int,
+                              guard_seq: int):
         result = compress.compress_image(img, config.LIMIT_BYTES)
         if result is None:
             self.notify(APP_NAME, tr("notify_compress_fail"))
@@ -122,7 +128,13 @@ class Monitor:
         with open(out_path, "wb") as f:
             f.write(data)
 
-        if cb.set_clipboard_file(out_path):
+        replaced = cb.set_clipboard_file(out_path, guard_seq=guard_seq)
+        if replaced is None:
+            # 압축하는 사이 사용자가 새로 복사했다 — 새 내용을 지우지 않고 이번
+            # 결과는 버린다. last_seq를 갱신하지 않으므로 새 복사는 다음 폴에서
+            # 정상적으로 처리된다.
+            return
+        if replaced:
             self.last_seq = cb.get_sequence_number()
             orig_mb = orig_bytes / 1024 / 1024
             new_mb = len(data) / 1024 / 1024
@@ -154,6 +166,25 @@ class Monitor:
         else:
             self.notify(APP_NAME, tr("notify_clipboard_fail"))
 
+    def _tick(self):
+        """폴 한 번: 시퀀스가 두 폴 연속 같을 때만 처리한다.
+
+        크로미움(디스코드)은 이미지 하나를 복사할 때 여러 포맷을 수백 ms에 걸쳐
+        쓰고, 그동안 시퀀스가 계속 증가한다. 변화 직후에 바로 읽으면 아직 PNG
+        포맷이 없어 비트맵 추정 경로로 빠지는 mid-write 읽기가 생기므로, 쓰기
+        세션이 끝나 시퀀스가 안정된 뒤에만 읽는다."""
+        seq = cb.get_sequence_number()
+        if seq == self.last_seq:
+            return
+        if seq != self._pending_seq:
+            self._pending_seq = seq  # 방금 변했다 — 다음 폴까지 기다린다
+            return
+        self.last_seq = seq
+        try:
+            self.process_clipboard()
+        except Exception:
+            pass
+
     def run(self):
         last_cleanup = time.time()
         while not self.stop_flag:
@@ -163,12 +194,6 @@ class Monitor:
                 last_cleanup = time.time()
             if not self.enabled:
                 continue
-            seq = cb.get_sequence_number()
-            if seq != self.last_seq:
-                self.last_seq = seq
-                try:
-                    self.process_clipboard()
-                except Exception:
-                    pass
+            self._tick()
         # 종료 시 임시 파일 정리 (1일 이상 지난 것)
         config.cleanup_temp()

@@ -3,6 +3,26 @@
 All notable changes to this project are documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.6.1] - 2026-07-15
+
+### Fixed
+- **A fresh copy made while Notro was still compressing the previous image is no longer
+  destroyed.** Compressing a large image takes a few seconds; if you copied something else
+  in that window, Notro would finish, overwrite the clipboard with the *old* image's
+  compressed file, and swallow the new copy's change event — your new copy vanished with
+  no notification. The clipboard swap now checks the clipboard sequence number *while
+  holding the clipboard open* and quietly discards the stale result if anything new
+  arrived; the new copy is then processed normally on the next poll.
+- **Notro no longer reads the clipboard in the middle of a write.** Chromium apps
+  (Discord, browsers) write an image copy as several formats over hundreds of
+  milliseconds. Waking up mid-write could miss the real PNG bytes and fall back to the
+  re-encoded-bitmap size estimate, which can overshoot and compress an image that was
+  actually under the limit. The monitor now waits until the sequence number is stable
+  across two polls (~0.4 s) before reading, so it only ever sees completed copies.
+  (Verified against Chromium: its clipboard writer also silently gives up if another
+  process holds the clipboard for ~25 ms during a copy — reads stay short and never
+  overlap a write session now.)
+
 ## [2.6.0] - 2026-07-12
 
 ### Added

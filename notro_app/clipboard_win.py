@@ -77,11 +77,19 @@ def _put_marker() -> None:
     _global_put(MARKER_FORMAT, b"\x01\x00")  # best-effort
 
 
-def set_clipboard_file(path: str) -> bool:
-    """파일을 CF_HDROP로 클립보드에 넣어 Ctrl+V로 파일 업로드가 되게 한다."""
+def set_clipboard_file(path: str, guard_seq: int | None = None) -> bool | None:
+    """파일을 CF_HDROP로 클립보드에 넣어 Ctrl+V로 파일 업로드가 되게 한다.
+
+    guard_seq가 주어지면 클립보드를 연 뒤(다른 프로세스가 더는 끼어들 수 없는
+    상태에서) 시퀀스를 비교해, 달라져 있으면 아무것도 바꾸지 않고 None을 반환한다.
+    이미지를 읽고 압축하는 몇 초 사이에 사용자가 새로 복사한 내용을 지우지 않기
+    위한 가드다. 반환: True(교체) / False(실패) / None(새 복사 감지 — 중단).
+    """
     if not _open_clipboard_retry():
         return False
     try:
+        if guard_seq is not None and get_sequence_number() != guard_seq:
+            return None
         user32.EmptyClipboard()
         if not _global_put(CF_HDROP, build_drop_data(path)):
             return False
