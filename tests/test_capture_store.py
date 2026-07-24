@@ -18,6 +18,7 @@ def png_bytes(color="red"):
 
 def test_read_prefers_registered_png(monkeypatch):
     """원본 PNG가 있는데 비트맵 재인코딩으로 바뀌는 회귀를 잡는다."""
+    monkeypatch.setattr(cs.cb, "clipboard_has_files", lambda: False)
     monkeypatch.setattr(cs.cb, "get_clipboard_png", lambda: b"raw-png")
     monkeypatch.setattr(
         cs.ImageGrab, "grabclipboard",
@@ -28,6 +29,7 @@ def test_read_prefers_registered_png(monkeypatch):
 
 def test_read_converts_bitmap_to_png(monkeypatch):
     """CF_DIB만 제공하는 캡처 도구를 놓치는 회귀를 잡는다."""
+    monkeypatch.setattr(cs.cb, "clipboard_has_files", lambda: False)
     monkeypatch.setattr(cs.cb, "get_clipboard_png", lambda: None)
     monkeypatch.setattr(
         cs.ImageGrab, "grabclipboard",
@@ -42,6 +44,7 @@ def test_read_converts_bitmap_to_png(monkeypatch):
 
 def test_read_excludes_file_list(monkeypatch):
     """Explorer 파일 복사가 자동 캡처로 등록되는 회귀를 잡는다."""
+    monkeypatch.setattr(cs.cb, "clipboard_has_files", lambda: True)
     monkeypatch.setattr(cs.cb, "get_clipboard_png", lambda: None)
     monkeypatch.setattr(
         cs.ImageGrab, "grabclipboard", lambda: [r"C:\x.png"])
@@ -51,6 +54,7 @@ def test_read_excludes_file_list(monkeypatch):
 
 def test_read_reports_clipboard_failure(monkeypatch):
     """클립보드 잠김이 단순 이미지 없음으로 숨겨지는 회귀를 잡는다."""
+    monkeypatch.setattr(cs.cb, "clipboard_has_files", lambda: False)
     monkeypatch.setattr(
         cs.cb, "get_clipboard_png",
         lambda: (_ for _ in ()).throw(OSError("busy")))

@@ -14,6 +14,7 @@ from PIL import Image, ImageGrab
 from . import APP_NAME
 from . import clipboard_win as cb
 from . import compress, config
+from .capture_store import image_to_png_bytes
 from .i18n import tr
 
 
@@ -28,6 +29,8 @@ class Monitor:
         self.history_lock = threading.Lock()  # 감시 스레드 ↔ 트레이 메뉴 스레드 동시 접근 보호
         self.on_history_change = None  # 트레이 메뉴 갱신 콜백
         self.on_video_oversize = None  # 한도 초과 비디오 감지 콜백 (app.py가 배선)
+        self.capture_enabled = None  # 자동 캡처 저장 설정 판정 콜백
+        self.on_capture_image = None  # PNG 바이트 저장 콜백 (app.py가 배선)
 
     def notify(self, title, msg):
         if self.status_cb:
@@ -35,6 +38,19 @@ class Monitor:
                 self.status_cb(title, msg)
             except Exception:
                 pass
+
+    def _emit_capture(self, data: bytes) -> None:
+        """자동 저장이 켜졌을 때 캡처 바이트를 전달한다.
+
+        저장 실패가 원래 책임인 대용량 압축을 막지 않도록 완전히 격리한다.
+        """
+        try:
+            if not self.capture_enabled or not self.capture_enabled():
+                return
+            if self.on_capture_image:
+                self.on_capture_image(data)
+        except Exception:
+            pass
 
     def process_clipboard(self):
         if cb.clipboard_has_marker():
@@ -54,6 +70,8 @@ class Monitor:
         except Exception:
             png = None
         if png is not None:
+            if not cb.clipboard_has_files():
+                self._emit_capture(png)
             if len(png) <= config.LIMIT_BYTES:
                 return  # 실제 PNG가 한도 이하 → 그대로 둠
             orig_bytes = len(png)
@@ -108,6 +126,10 @@ class Monitor:
 
         # 비트맵이면 PNG 기준 용량으로 판단 (디스코드가 PNG로 변환해서 올리므로)
         if isinstance(content, Image.Image):
+            try:
+                self._emit_capture(image_to_png_bytes(img))
+            except Exception:
+                pass
             orig_bytes = compress.estimate_png_size(img)
             if orig_bytes <= config.LIMIT_BYTES:
                 return  # 한도 이하 → 그대로 둠

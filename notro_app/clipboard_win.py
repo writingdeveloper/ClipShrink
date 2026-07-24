@@ -118,6 +118,11 @@ def clipboard_has_marker() -> bool:
     return bool(user32.IsClipboardFormatAvailable(MARKER_FORMAT))
 
 
+def clipboard_has_files() -> bool:
+    """Explorer 파일 복사(CF_HDROP) 여부를 클립보드를 열지 않고 확인한다."""
+    return bool(user32.IsClipboardFormatAvailable(CF_HDROP))
+
+
 def get_sequence_number() -> int:
     return user32.GetClipboardSequenceNumber()
 

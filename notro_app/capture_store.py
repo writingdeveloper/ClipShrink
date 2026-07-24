@@ -47,6 +47,12 @@ def read_clipboard_png() -> CaptureReadResult:
 
     ImageGrab의 경로 리스트는 Explorer 파일 복사이므로 캡처로 보지 않는다.
     """
+    try:
+        if cb.clipboard_has_files():
+            return CaptureReadResult(None, "no_image")
+    except Exception:
+        pass
+
     read_failed = False
     try:
         data = cb.get_clipboard_png()
