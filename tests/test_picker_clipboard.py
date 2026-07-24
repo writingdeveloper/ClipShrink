@@ -173,3 +173,8 @@ def test_paste_no_image_string_registered_all_langs():
     assert "picker_paste_no_image" in window.PICKER_STRING_KEYS
     for lang in i18n.SUPPORTED_LANGS:
         assert i18n.STRINGS[lang].get("picker_paste_no_image")
+
+
+def test_settings_tooltip_string_is_exposed_to_picker():
+    """설정 버튼 툴팁이 번역 키 이름 그대로 노출되는 회귀를 잡는다."""
+    assert "picker_settings" in window.PICKER_STRING_KEYS

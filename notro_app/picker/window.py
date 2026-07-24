@@ -131,6 +131,7 @@ PICKER_STRING_KEYS = [
     "picker_convert_warn", "picker_paste_no_image",
     "picker_ctx_favorite", "picker_ctx_unfavorite", "picker_ctx_collection",
     "picker_col_all", "picker_col_favorites", "picker_open_library",
+    "picker_settings",
     "picker_capture_add", "picker_capture_saved", "picker_capture_duplicate",
     "picker_capture_no_image", "picker_capture_read_error",
     "picker_capture_register_error", "picker_capture_collection",

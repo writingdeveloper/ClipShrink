@@ -80,6 +80,17 @@ def test_capture_keys_exist_in_all_languages():
         assert CAPTURE_KEYS <= set(i18n.STRINGS[lang])
 
 
+def test_capture_placeholders_match_across_languages():
+    import re
+
+    def placeholders(text):
+        return set(re.findall(r"\{(\w+)", text))
+
+    expected = {"count", "failed"}
+    for lang in i18n.SUPPORTED_LANGS:
+        assert placeholders(i18n.STRINGS[lang]["picker_drop_partial"]) == expected
+
+
 def test_release_version_is_2_7_0():
     """릴리스 문서와 실행 파일 버전이 이전 값으로 남는 회귀를 잡는다."""
     import notro_app
