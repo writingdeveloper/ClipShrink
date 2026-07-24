@@ -1,6 +1,6 @@
 /* Notro Picker UI. pywebview 부재 시(mock) 브라우저 단독 미리보기 지원. */
 const $ = (s) => document.querySelector(s);
-const state = { items: [], recent: [], folders: [], collections: [], strings: {}, tab: "emoji", query: "", collection: "__all__" };
+const state = { items: [], recent: [], folders: [], collections: [], strings: {}, tab: "emoji", query: "", collection: "__all__", captureCollection: "__notro_captures__", autoCaptureSave: false };
 
 const str = (k) => state.strings[k] || k;
 const api = () => window.pywebview && window.pywebview.api;
@@ -9,7 +9,7 @@ const api = () => window.pywebview && window.pywebview.api;
 async function refresh() {
   if (!api()) { mock(); applyStrings(); renderRail(); render(); renderFolders(); return; }
   const s = await api().get_state();
-  Object.assign(state, { items: s.items, recent: s.recent, folders: s.folders, collections: s.collections || [], strings: s.strings });
+  Object.assign(state, { items: s.items, recent: s.recent, folders: s.folders, collections: s.collections || [], strings: s.strings, captureCollection: s.capture_collection || "__notro_captures__", autoCaptureSave: !!s.auto_capture_save });
   applyStrings(); renderRail(); render(); renderFolders();
 }
 
@@ -25,13 +25,16 @@ function mock() {
   ];
   state.recent = ["1"];
   state.folders = [{ path: "C:\\mock\\gifs", default_type: "gif", exists: true }];
-  state.collections = [{ name: "miku", icon: sq("#39c5bb") }, { name: "gifs", icon: null }];
+  state.collections = [{ name: "miku", label: "miku", icon: sq("#39c5bb") }, { name: "gifs", label: "gifs", icon: null }];
+  state.autoCaptureSave = false;
   state.strings = {};
 }
 
 /* ---------- 렌더 ---------- */
 function applyStrings() {
   $("#search").placeholder = str("picker_search");
+  $("#btn-capture").title = str("picker_capture_add");
+  $("#btn-capture").setAttribute("aria-label", str("picker_capture_add"));
   $("#btn-add").title = str("picker_add_submit");
   $("#btn-settings").title = str("picker_settings");
   document.querySelectorAll(".tab").forEach((b) => {
@@ -45,7 +48,11 @@ function applyStrings() {
   $("#add-note").textContent = str("picker_add_note");
   $("#add-submit").textContent = str("picker_add_submit");
   $("#add-cancel").textContent = str("picker_cancel");
-  $("#st-title").textContent = str("picker_folders_title");
+  $("#st-title").textContent = str("picker_settings_title");
+  $("#st-auto-capture-label").textContent = str("picker_auto_capture");
+  $("#st-auto-capture-note").textContent = str("picker_auto_capture_note");
+  $("#st-auto-capture").checked = state.autoCaptureSave;
+  $("#st-folders-subtitle").textContent = str("picker_folders_subtitle");
   $("#st-openlib").textContent = str("picker_open_library");
   $("#st-addfolder").textContent = str("picker_add_folder");
   $("#st-close").textContent = str("picker_cancel");
@@ -77,7 +84,10 @@ function renderRail() {
   };
   add("__fav__", "★", str("picker_col_favorites"), null);
   add("__all__", "▦", str("picker_col_all"), null);
-  for (const col of state.collections) add(col.name, col.name.slice(0, 2), col.name, col.icon);
+  for (const col of state.collections) {
+    const label = col.label || col.name;
+    add(col.name, label.slice(0, 2), label, col.icon);
+  }
 }
 
 // 타이핑 반응성을 위한 클라이언트 미러. 정식 검색 책임은 library.search() (스펙 §3).
@@ -171,8 +181,15 @@ function showCtx(e, item) {
     add(item.favorite ? str("picker_ctx_unfavorite") : str("picker_ctx_favorite"),
         async () => { await api().toggle_favorite(item.id); refresh(); });
     add(str("picker_ctx_collection"), async () => {
-      const name = window.prompt(str("picker_ctx_collection"), item.collection || "");
-      if (name !== null) { await api().set_collection(item.id, name.trim()); refresh(); }
+      const shown = item.collection_label || item.collection || "";
+      const name = window.prompt(str("picker_ctx_collection"), shown);
+      if (name !== null) {
+        const trimmed = name.trim();
+        const value = item.collection === state.captureCollection && trimmed === shown
+          ? state.captureCollection : trimmed;
+        await api().set_collection(item.id, value);
+        refresh();
+      }
     });
     add(str("picker_ctx_delete"), async () => { await api().remove_item(item.id); refresh(); }, true);
   }
@@ -203,6 +220,28 @@ async function submitAdd() {
     el.textContent = str("picker_err_" + res.error);
     el.classList.remove("hidden");
   }
+}
+
+function captureErrorKey(error) {
+  return ({
+    no_image: "picker_capture_no_image",
+    read: "picker_capture_read_error",
+    register: "picker_capture_register_error",
+  })[error] || "picker_capture_register_error";
+}
+
+async function addCapture() {
+  if (!api()) return;
+  const res = await api().register_capture();
+  if (!res || !res.ok) {
+    flashHint(captureErrorKey(res && res.error));
+    return;
+  }
+  await refresh();
+  state.collection = res.collection;
+  renderRail();
+  render();
+  flashHint(res.duplicate ? "picker_capture_duplicate" : "picker_capture_saved");
 }
 
 /* ---------- 폴더 설정 ---------- */
@@ -237,11 +276,20 @@ document.querySelectorAll(".tab").forEach((b) =>
     render();
   }));
 $("#btn-add").addEventListener("click", openAdd);
+$("#btn-capture").addEventListener("click", addCapture);
 $("#add-submit").addEventListener("click", submitAdd);
 $("#add-url").addEventListener("keydown", (e) => { if (e.key === "Enter") submitAdd(); });
 $("#add-cancel").addEventListener("click", () => $("#modal-add").classList.add("hidden"));
-$("#btn-settings").addEventListener("click", () => $("#modal-settings").classList.remove("hidden"));
+$("#btn-settings").addEventListener("click", () => {
+  $("#st-auto-capture").checked = state.autoCaptureSave;
+  $("#modal-settings").classList.remove("hidden");
+});
 $("#st-close").addEventListener("click", () => $("#modal-settings").classList.add("hidden"));
+$("#st-auto-capture").addEventListener("change", async (e) => {
+  if (!api()) return;
+  state.autoCaptureSave = !!(await api().set_auto_capture_save(e.target.checked));
+  e.target.checked = state.autoCaptureSave;
+});
 $("#st-addfolder").addEventListener("click", async () => {
   if (api()) { await api().add_folder(state.tab); refresh(); }
 });
@@ -268,14 +316,23 @@ window.addEventListener("drop", async (e) => {
   $("#dropzone").classList.add("hidden");
   if (!api()) return;
   const paths = [...e.dataTransfer.files].map((f) => f.pywebviewFullPath).filter(Boolean);
-  if (paths.length) { await api().register_files(paths, state.tab); refresh(); }
+  if (paths.length) {
+    const res = await api().register_files(paths, state.tab);
+    await refresh();
+    if (res.failed && res.count) flashHint("picker_drop_partial", res);
+    else if (res.failed) flashHint("picker_drop_failed");
+  }
 });
 
 /* ---------- 클립보드 이미지 붙여넣기 등록 (스펙 §5) ---------- */
 let hintTimer = 0;
-function flashHint(key) {
+function flashHint(key, values) {
   const f = $("#hint");
-  f.textContent = str(key);
+  let message = str(key);
+  for (const [name, value] of Object.entries(values || {})) {
+    message = message.replaceAll("{" + name + "}", value);
+  }
+  f.textContent = message;
   clearTimeout(hintTimer);
   hintTimer = setTimeout(() => { f.textContent = str("picker_hint"); }, 1800);
 }
@@ -283,15 +340,16 @@ window.addEventListener("paste", async (e) => {
   /* 등록 모달이 열려 있으면 URL 등 네이티브 붙여넣기를 방해하지 않는다 */
   if (!$("#modal-add").classList.contains("hidden")) return;
   if (!api()) return;
-  /* 이미지가 있을 때만 가로챈다 — 텍스트 붙여넣기는 검색창 네이티브 동작에 맡긴다.
-     실제 원본 PNG 바이트는 Python이 클립보드에서 직접 읽는다(재인코딩 방지). */
+  /* MIME이 명확한 이미지만 기본 동작을 막는다. 백엔드 호출 자체는 항상 시도해
+     MIME이 빠진 CF_DIB 캡처도 저장하되 텍스트 붙여넣기는 그대로 둔다. */
   const items = (e.clipboardData && e.clipboardData.items) || [];
   const hasImage = [...items].some((it) => it.type && it.type.indexOf("image/") === 0);
-  if (!hasImage) return;
-  e.preventDefault();
+  if (hasImage) e.preventDefault();
   const res = await api().register_clipboard(state.tab);
-  if (res && res.ok) refresh();
-  else flashHint("picker_paste_no_image");
+  if (res && res.ok) await refresh();
+  else if (hasImage || (res && res.error !== "no_image")) {
+    flashHint(captureErrorKey(res && res.error));
+  }
 });
 
 /* ---------- 표시 훅 (Python이 호출) ---------- */

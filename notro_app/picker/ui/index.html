@@ -11,8 +11,9 @@
   <div id="main">
     <header>
       <input id="search" type="text" autocomplete="off" spellcheck="false">
-      <button id="btn-add" class="iconbtn" title="+">＋</button>
-      <button id="btn-settings" class="iconbtn" title="settings">⚙</button>
+      <button id="btn-capture" class="iconbtn capture" type="button">▣</button>
+      <button id="btn-add" class="iconbtn" type="button" title="+">＋</button>
+      <button id="btn-settings" class="iconbtn" type="button" title="settings">⚙</button>
     </header>
     <nav id="tabs">
       <button class="tab active" data-tab="emoji"></button>
@@ -44,6 +45,14 @@
 <div id="modal-settings" class="modal hidden">
   <div class="modal-box">
     <h3 id="st-title"></h3>
+    <div class="setting-row">
+      <div class="setting-copy">
+        <label id="st-auto-capture-label" for="st-auto-capture"></label>
+        <p id="st-auto-capture-note" class="note"></p>
+      </div>
+      <input id="st-auto-capture" type="checkbox">
+    </div>
+    <h4 id="st-folders-subtitle"></h4>
     <div id="st-folders"></div>
     <button id="st-openlib" class="wide"></button>
     <div class="row">

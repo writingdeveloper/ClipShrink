@@ -131,6 +131,12 @@ PICKER_STRING_KEYS = [
     "picker_convert_warn", "picker_paste_no_image",
     "picker_ctx_favorite", "picker_ctx_unfavorite", "picker_ctx_collection",
     "picker_col_all", "picker_col_favorites", "picker_open_library",
+    "picker_capture_add", "picker_capture_saved", "picker_capture_duplicate",
+    "picker_capture_no_image", "picker_capture_read_error",
+    "picker_capture_register_error", "picker_capture_collection",
+    "picker_auto_capture", "picker_auto_capture_note",
+    "picker_settings_title", "picker_folders_subtitle",
+    "picker_drop_partial", "picker_drop_failed",
 ]
 
 
@@ -150,6 +156,9 @@ class PickerApi:
             CaptureStore(library) if library is not None else None)
 
     def _display(self, item: dict) -> dict:
+        from ..i18n import tr
+
+        collection = item.get("collection", "")
         return {
             "id": item["id"], "type": item["type"], "name": item["name"],
             "keywords": item["keywords"], "animated": item["animated"],
@@ -158,7 +167,9 @@ class PickerApi:
             "is_folder": item["source_kind"] == "folder",
             "convert_warning": bool(item.get("convert_warning", False)),
             "favorite": bool(item.get("favorite", False)),
-            "collection": item.get("collection", ""),
+            "collection": collection,
+            "collection_label": tr("picker_capture_collection")
+            if collection == CAPTURE_COLLECTION_ID else collection,
         }
 
     def get_state(self) -> dict:

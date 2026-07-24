@@ -62,3 +62,19 @@ def test_video_placeholders_match_across_languages():
         ref = ph(i18n.STRINGS["en"][k])
         for lang in i18n.SUPPORTED_LANGS:
             assert ph(i18n.STRINGS[lang][k]) == ref, f"{lang}/{k}"
+
+
+CAPTURE_KEYS = {
+    "picker_capture_add", "picker_capture_saved", "picker_capture_duplicate",
+    "picker_capture_no_image", "picker_capture_read_error",
+    "picker_capture_register_error", "picker_capture_collection",
+    "picker_auto_capture", "picker_auto_capture_note",
+    "notify_capture_save_fail", "picker_settings_title",
+    "picker_folders_subtitle", "picker_drop_partial", "picker_drop_failed",
+}
+
+
+def test_capture_keys_exist_in_all_languages():
+    """한 언어에서 캡처 UI가 키 이름 그대로 노출되는 회귀를 잡는다."""
+    for lang in i18n.SUPPORTED_LANGS:
+        assert CAPTURE_KEYS <= set(i18n.STRINGS[lang])
