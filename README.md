@@ -42,6 +42,10 @@ with three tabs: **Emoji / Stickers / GIFs**.
 - **Add items:** press **＋** and paste a Discord *"Copy Link"* emoji URL, or
   drag & drop image files onto the picker, or add **watched folders** (⚙) whose
   PNG/GIF/WebP/APNG files appear automatically in the current tab.
+- **Save captures:** press the clipboard button to save the current image directly
+  to the **Captures** emoji collection (or keep using <kbd>Ctrl</kbd>+<kbd>V</kbd>).
+  Picker settings can automatically save each new clipboard image; this is off by
+  default, and copied image files are excluded.
 - **Use items:** click one — the picker hides, focus returns to Discord, and the
   image is pasted into the message box as an attachment. **You press Enter to
   send.** Right-click for "paste as link" (CDN items) or remove.

@@ -3,6 +3,26 @@
 All notable changes to this project are documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.7.0] - 2026-07-23
+
+### Added
+- **One-click clipboard capture storage.** The picker now has a dedicated button that saves
+  the current clipboard image as an emoji in a localized Captures collection. The existing
+  <kbd>Ctrl</kbd>+<kbd>V</kbd> current-tab workflow remains available.
+- **Optional automatic capture storage.** Picker settings can save each new clipboard PNG or
+  bitmap automatically. It is off by default, ignores copied image files, and deduplicates
+  identical captures by a persistent SHA-256 hash.
+
+### Changed
+- Clipboard-only bitmap captures now fall back through `CF_DIB` when no registered PNG format
+  is available, and capture collections keep a stable internal identity across language changes.
+- File drops now report partial or complete registration failures instead of silently claiming
+  success when nothing was added.
+
+### Fixed
+- Clipboard image registration is now visible and reliable instead of depending solely on a
+  hidden browser paste-event MIME check.
+
 ## [2.6.1] - 2026-07-15
 
 ### Fixed

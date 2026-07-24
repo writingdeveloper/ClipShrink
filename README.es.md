@@ -33,6 +33,7 @@ Una pequeña aplicación de bandeja para Windows para los usuarios gratuitos de 
 Pulsa <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> (configurable desde la bandeja) mientras escribes en Discord: se abre una ventana emergente oscura al estilo de Discord cerca del cursor con tres pestañas: **Emojis / Stickers / GIF**.
 
 - **Añadir elementos:** pulsa **＋** y pega una URL de emoji de *«Copiar enlace»* de Discord, o arrastra y suelta archivos de imagen en el selector, o añade **carpetas vigiladas** (⚙) cuyos archivos PNG/GIF/WebP/APNG aparecen automáticamente en la pestaña actual.
+- **Guardar capturas:** pulsa el botón del portapapeles para guardar la imagen actual directamente en la colección de emojis **Capturas** (también puedes seguir usando <kbd>Ctrl</kbd>+<kbd>V</kbd>). En los ajustes del selector puedes guardar automáticamente cada imagen nueva; está desactivado de forma predeterminada y excluye los archivos de imagen copiados.
 - **Usar elementos:** haz clic en uno: el selector se oculta, el foco vuelve a Discord y la imagen se pega en el cuadro de mensaje como adjunto. **Tú pulsas Enter para enviar.** Clic derecho para «pegar como enlace» (elementos CDN) o eliminar.
 - Los stickers APNG animados se convierten a GIF al registrarlos, porque Discord no anima los APNG subidos.
 - Busca por nombre o palabras clave; una fila de «Usados recientemente» mantiene cerca los habituales.
