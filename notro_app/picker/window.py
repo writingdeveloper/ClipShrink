@@ -9,6 +9,9 @@ import os
 import sys
 
 from .. import clipboard_win as cb
+from .. import config
+from ..capture_store import (CAPTURE_COLLECTION_ID, CaptureStore,
+                             read_clipboard_png)
 
 user32 = ctypes.windll.user32
 
@@ -139,10 +142,12 @@ class PickerApi:
     그래프 탐색으로 브리지 생성이 멈춘다 — 반드시 `_` 접두 프라이빗으로.
     """
 
-    def __init__(self, library=None, asset_server=None):
+    def __init__(self, library=None, asset_server=None, capture_store=None):
         self._ctrl: PickerController | None = None
         self._library = library
         self._asset_server = asset_server
+        self._capture_store = capture_store or (
+            CaptureStore(library) if library is not None else None)
 
     def _display(self, item: dict) -> dict:
         return {
@@ -163,6 +168,8 @@ class PickerApi:
             icon_id = self._library.collection_icon(name)
             cols.append({
                 "name": name,
+                "label": tr("picker_capture_collection")
+                if name == CAPTURE_COLLECTION_ID else name,
                 "icon": self._asset_server.url_for(icon_id) if icon_id else None,
             })
         return {
@@ -171,6 +178,8 @@ class PickerApi:
             "folders": [{**f, "exists": os.path.isdir(f["path"])}
                         for f in self._library.folders()],
             "collections": cols,
+            "auto_capture_save": config.get_setting_flag("auto_capture_save"),
+            "capture_collection": CAPTURE_COLLECTION_ID,
             "strings": {k: tr(k) for k in PICKER_STRING_KEYS},
         }
 
@@ -196,13 +205,30 @@ class PickerApi:
     def register_files(self, paths, type_: str) -> dict:
         from .. import fetch
         n = 0
+        failed = 0
         for p in paths or []:
             try:
                 fetch.register_from_file(self._library, p, type_)
                 n += 1
             except Exception:
-                pass
-        return {"ok": True, "count": n}
+                failed += 1
+        return {"ok": True, "count": n, "failed": failed}
+
+    def register_capture(self) -> dict:
+        """현재 클립보드 이미지를 예약 캡처 컬렉션에 한 번만 저장한다."""
+        result = self._capture_store.read_and_save()
+        if not result.ok:
+            return {"ok": False, "error": result.error or "register"}
+        return {
+            "ok": True,
+            "duplicate": result.duplicate,
+            "item_id": result.item_id,
+            "collection": CAPTURE_COLLECTION_ID,
+        }
+
+    def set_auto_capture_save(self, enabled: bool) -> bool:
+        config.set_setting_flag("auto_capture_save", bool(enabled))
+        return config.get_setting_flag("auto_capture_save")
 
     def register_clipboard(self, type_: str) -> dict:
         """클립보드의 PNG 이미지를 라이브러리에 등록 (스펙 §5 — 디스코드/브라우저
@@ -211,12 +237,13 @@ class PickerApi:
         from datetime import datetime
 
         from .. import fetch
-        data = cb.get_clipboard_png()
-        if not data:
-            return {"ok": False, "error": "no_image"}
+        read = read_clipboard_png()
+        if not read.data:
+            return {"ok": False, "error": read.error or "no_image"}
         name = datetime.now().strftime("clip-%Y%m%d-%H%M%S")
         try:
-            fetch.register_from_png_bytes(self._library, data, type_, name=name)
+            fetch.register_from_png_bytes(
+                self._library, read.data, type_, name=name)
         except Exception:
             return {"ok": False, "error": "register"}
         return {"ok": True}

@@ -16,7 +16,9 @@ import threading
 from . import APP_NAME, config, tray
 from .config import (cleanup_temp, ensure_single_instance, get_setting_flag,
                      get_setting_int, get_setting_str, set_setting_flag)
+from .capture_store import CaptureStore
 from .i18n import set_language, tr
+from .library import Library
 from .monitor import Monitor
 
 
@@ -62,6 +64,21 @@ def _set_app_user_model_id():
         pass
 
 
+def configure_capture_storage(monitor, library) -> CaptureStore:
+    """Monitor와 피커가 공유할 캡처 저장 서비스를 만들고 자동 저장을 배선한다."""
+    store = CaptureStore(library)
+    monitor.capture_enabled = lambda: config.get_setting_flag(
+        "auto_capture_save")
+
+    def _save_capture(data: bytes) -> None:
+        result = store.save_png(data)
+        if not result.ok:
+            monitor.notify(APP_NAME, tr("notify_capture_save_fail"))
+
+    monitor.on_capture_image = _save_capture
+    return store
+
+
 def main():
     import os
     import sys
@@ -87,7 +104,9 @@ def main():
     if first_run:
         set_setting_flag("welcomed")
 
+    library = Library(config.DATA_DIR)
     monitor = Monitor()
+    capture_store = configure_capture_storage(monitor, library)
     threading.Thread(target=monitor.run, daemon=True).start()
 
     # 자동 업데이터는 frozen(exe)일 때만. on_ready는 아이콘 생성 후 재배선한다.
@@ -114,11 +133,8 @@ def main():
     import webview
 
     from .hotkey import HotkeyListener
-    from .library import Library
     from .picker.assets_server import AssetServer
     from .picker.window import PickerApi, PickerController
-
-    library = Library(config.DATA_DIR)
 
     def _resolve_asset(item_id: str):
         item = library.get(item_id)
@@ -130,7 +146,8 @@ def main():
     asset_server = AssetServer(_resolve_asset)
     asset_server.start()
 
-    api = PickerApi(library=library, asset_server=asset_server)
+    api = PickerApi(library=library, asset_server=asset_server,
+                    capture_store=capture_store)
     picker = PickerController(library=library, api=api)
     api._ctrl = picker
     listener = HotkeyListener(on_hotkey=picker.toggle)
